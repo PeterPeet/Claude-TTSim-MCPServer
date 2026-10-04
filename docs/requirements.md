@@ -132,12 +132,25 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 
 ## Open questions (resolve by spike against real TTS)
 
-- **Q1** Exact External Editor API message format. Expected: send `{"messageID": 3, "guid": "-1", "script": "...",
-  "returnID": <n>}` to :39999; return values arrive on :39998 as messageID 5. **Must be verified.**
-- **Q2** Does TTS open a new connection to :39998 for each message, and how are table return values serialised?
-- **Q3** Does anything else already listen on :39998 (e.g. a TTS editor plugin in VS Code/Atom)? Only one listener can bind.
+- **Q1** Exact External Editor API message format. — **Resolved 2026-10-05 (spike):** send
+  `{"messageID": 3, "guid": "-1", "script": "...", "returnID": <n>}` to :39999 (one connection per message).
+  The reply arrives on :39998 as `{"messageID": 5, "returnID": <n>, "returnValue": <v>}`.
+  `returnValue` is omitted when the script returns `nil`. Numbers arrive as floats (`2.0`).
+- **Q2** Connections and serialisation. — **Resolved 2026-10-05 (spike):** TTS opens a new connection to :39998
+  for every message and sends one pretty-printed JSON object per connection.
+  Strings, numbers and booleans come back directly. **Returning a Lua table produces no reply at all**
+  (the call would time out). `JSON.encode(...)` inside the script works: the value arrives as a JSON string.
+  A Lua error arrives first as `{"messageID": 3, "guid": "-1", "error": "...", "errorMessagePrefix": "..."}`
+  **without a returnID**, followed by a messageID 5 with the returnID and no returnValue.
+  `print()` arrives as `{"messageID": 2, "message": "..."}`.
+  Consequence for implementation: wrap scripts in Lua so tables are JSON-encoded and errors are caught with
+  `pcall`, then returned under the same returnID. This also makes errors unambiguous when calls overlap.
+- **Q3** Other listeners on :39998. — **Resolved 2026-10-05:** nothing else was listening on Peter's machine.
+  An editor plugin (VS Code/Atom) would block it; `TTSNotRunningError`'s hint should mention this.
 - **Q4** How is Peter's Backgammon mod built: board as one object, checkers named or tinted per colour,
   snap points per point, scripted dice or plain dice?
+  — **Partly answered 2026-10-05 (spike):** 35 objects: 1 `Board`, 4 `Dice`, 30 `Backgammon Piece`.
+  All have empty names. Colours, positions and snap points are still to be checked.
 - **Q5** Which colour does Claude play, and who rolls Claude's dice (Claude via tool, or Peter)?
 - **Q6** Does `getScripts` (messageID 0) have any side effects on the loaded game?
 
@@ -146,3 +159,4 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 - 2026-10-05 — Restarted from the TTS-MCP user story; Backgammon first, Age of Sigmar later.
   Replaces the earlier AoS-first draft.
 - 2026-10-05 — All requirements marked `agreed` by Peter.
+- 2026-10-05 — Spike results recorded for Q1–Q3, Q4 partly. No requirement changed.
