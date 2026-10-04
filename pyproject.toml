@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tts-mcp"
+version = "0.1.0"
+description = "MCP server giving Claude access to Tabletop Simulator via the External Editor API"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.setuptools.packages.find]
+include = ["tts_mcp*"]
+
+[tool.setuptools.package-data]
+tts_mcp = ["lua/*.lua"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not tts'"
+markers = ["tts: requires Tabletop Simulator running with a game loaded"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

@@ -26,26 +26,26 @@ Age of Sigmar (Spearhead) is the long-term goal.
 
 ## Phase 1 — Access (REQ-COM)
 
-**REQ-COM-01 Execute Lua** — `agreed`
+**REQ-COM-01 Execute Lua** — `done`
 The bridge can send a Lua snippet to TTS and receive its return value.
 - Acceptance: executing `return 1+1` returns `2`; a table return value arrives as a dict/list.
 
-**REQ-COM-02 Timeout** — `agreed`
+**REQ-COM-02 Timeout** — `done`
 If TTS does not answer within a configurable timeout (default 5 s), the call raises `TTSTimeoutError`
 instead of hanging.
 
-**REQ-COM-03 Lua errors** — `agreed`
+**REQ-COM-03 Lua errors** — `done`
 A Lua runtime error in TTS is surfaced as `TTSLuaError` containing the TTS error message.
 
-**REQ-COM-04 Not running** — `agreed`
+**REQ-COM-04 Not running** — `done`
 If nothing is listening on port 39999, the call raises `TTSNotRunningError` with a hint to start TTS
 and load a game.
 
-**REQ-COM-05 Events** — `agreed`
+**REQ-COM-05 Events** — `done`
 Messages TTS sends on its own (print, error, game loaded, game saved, object created) are received and kept
 in a bounded buffer that can be read later.
 
-**REQ-COM-06 Fake TTS** — `agreed`
+**REQ-COM-06 Fake TTS** — `done`
 `tests/fake_tts.py` provides a fake server with scripted responses (success, Lua error, no reply, events)
 so all of REQ-COM can be tested without the game.
 
@@ -152,6 +152,10 @@ The skill and MCP server can be installed into Claude Code from this repo with d
   — **Partly answered 2026-10-05 (spike):** 35 objects: 1 `Board`, 4 `Dice`, 30 `Backgammon Piece`.
   All have empty names. Colours, positions and snap points are still to be checked.
 - **Q5** Which colour does Claude play, and who rolls Claude's dice (Claude via tool, or Peter)?
+  — **Resolved 2026-10-05 (Peter):** Claude plays the colour the game assigns it; if none is assigned, the
+  light (white) side. Decided by Claude, since Peter left it open: Claude rolls its own dice with the dice tool
+  (REQ-DICE-01), so every roll is a visible physical roll in TTS. Peter rolls his own, and Claude reads them
+  (REQ-DICE-02).
 - **Q6** Does `getScripts` (messageID 0) have any side effects on the loaded game?
 
 ## Changelog
@@ -160,3 +164,5 @@ The skill and MCP server can be installed into Claude Code from this repo with d
   Replaces the earlier AoS-first draft.
 - 2026-10-05 — All requirements marked `agreed` by Peter.
 - 2026-10-05 — Spike results recorded for Q1–Q3, Q4 partly. No requirement changed.
+- 2026-10-05 — Q5 resolved. No requirement changed.
+- 2026-10-05 — Phase 1 done: REQ-COM-01..06 pass (unit, contract, and integration against real TTS).
