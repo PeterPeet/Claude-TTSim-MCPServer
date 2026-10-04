@@ -7,10 +7,10 @@ name = "tts-mcp"
 version = "0.1.0"
 description = "MCP server giving Claude access to Tabletop Simulator via the External Editor API"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["mcp>=2.3,<3"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6"]
+dev = ["pytest>=8", "ruff>=0.6", "anyio>=4"]
 
 [tool.setuptools.packages.find]
 include = ["tts_mcp*"]

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tts": {
+      "command": "/Users/Shared/Claude-TTS-MCPServer/.venv/bin/python",
+      "args": ["-m", "tts_mcp"]
+    }
+  }
+}

@@ -41,7 +41,13 @@ EVENT_KINDS = {
     7: "object_created",
 }
 
-_WRAPPER = resources.files("tts_mcp").joinpath("lua/execute_wrapper.lua").read_text(encoding="utf-8")
+
+def load_lua(name: str) -> str:
+    """Read a Lua template from tts_mcp/lua/."""
+    return resources.files("tts_mcp").joinpath(f"lua/{name}").read_text(encoding="utf-8")
+
+
+_WRAPPER = load_lua("execute_wrapper.lua")
 
 
 class TTSError(Exception):

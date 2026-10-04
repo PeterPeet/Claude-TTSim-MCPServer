@@ -56,16 +56,16 @@ so all of REQ-COM can be tested without the game.
 - Acceptance: registered in Claude Code, its tools are listed, and `run_lua("return 1+1")` returns `2`
   against the real game.
 
-**REQ-MCP-02 Raw access tools** — `agreed`
+**REQ-MCP-02 Raw access tools** — `done`
 - `run_lua(code)` — execute Lua in the global context, return the result.
 - `get_scripts()` — read the loaded mod's Global and object scripts (read-only).
 - `get_events(since?)` — return buffered TTS events (REQ-COM-05).
 - `tts_status()` — whether TTS is reachable and which game is loaded.
 
-**REQ-MCP-03 Thin adapter** — `agreed`
+**REQ-MCP-03 Thin adapter** — `done`
 The MCP layer contains no logic: only argument parsing and calls into `tts_mcp.comms` / `tts_mcp.table`.
 
-**REQ-MCP-04 Errors as tool results** — `agreed`
+**REQ-MCP-04 Errors as tool results** — `done`
 `TTSTimeoutError`, `TTSLuaError` and `TTSNotRunningError` reach Claude as readable tool errors, not crashes.
 
 ## Phase 3 — 3D controls (REQ-OBJ, REQ-DICE)
@@ -157,6 +157,8 @@ The skill and MCP server can be installed into Claude Code from this repo with d
   (REQ-DICE-01), so every roll is a visible physical roll in TTS. Peter rolls his own, and Claude reads them
   (REQ-DICE-02).
 - **Q6** Does `getScripts` (messageID 0) have any side effects on the loaded game?
+  — **Resolved 2026-10-05 by avoiding it:** `get_scripts` reads scripts with read-only Lua
+  (`getLuaScript`, `UI.getXml`), so messageID 0 is never sent. The game name comes from `Info.name`.
 
 ## Changelog
 
@@ -166,3 +168,5 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 - 2026-10-05 — Spike results recorded for Q1–Q3, Q4 partly. No requirement changed.
 - 2026-10-05 — Q5 resolved. No requirement changed.
 - 2026-10-05 — Phase 1 done: REQ-COM-01..06 pass (unit, contract, and integration against real TTS).
+- 2026-10-05 — Phase 2: REQ-MCP-02..04 done. REQ-MCP-01 passes over stdio against real TTS; the
+  Claude Code registration (`.mcp.json`) still needs Peter's check in a new session. Q6 resolved.
