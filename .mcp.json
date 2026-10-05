@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "ttsim": {
-      "command": "/Users/Shared/Claude-TTS-MCPServer/.venv/bin/python",
+      "command": "/Users/Shared/Claude-TTSim-MCPServer/.venv/bin/python",
       "args": ["-m", "ttsim_mcp"]
     }
   }
