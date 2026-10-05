@@ -14,7 +14,8 @@ Two parts work together:
 - **TTSim-MCP** is an MCP server that gives Claude generic access to Tabletop Simulator: run Lua in the game, list
   and inspect objects, move them, measure distances, roll and read dice. It knows nothing about any specific game.
 - **Game skills** teach Claude one game on one table: where the pieces are, how the board is laid out, the rules,
-  and how a turn with you works. The first skill is **ttsim-backgammon**.
+  and how a turn with you works. Skills so far: **ttsim-backgammon** (the built-in Backgammon table) and
+  **ttsim-nine-mens-morris** (the Steam Workshop mod "Nine Men's Morris").
 
 ```mermaid
 flowchart LR
@@ -51,7 +52,7 @@ A test of 400 rolls came out consistent with fair dice (see [docs/requirements.m
 | `list_objects`, `inspect_object` | Objects on the table with position, rotation, tint, bounds, snap points |
 | `move_object`, `move_objects` | Move pieces smoothly and wait until they have settled |
 | `table_geometry`, `measure`, `highlight` | Table size, distances, point out a piece to the player |
-| `roll_dice`, `read_dice` | Roll dice with TTSim's physics and read the results; flags dice that landed tilted |
+| `roll_dice`, `read_dice` | Roll dice (and flip coins) with TTSim's physics and read the results; flags dice that landed tilted |
 
 ## Requirements
 
@@ -84,7 +85,7 @@ Change it to your own folder:
 }
 ```
 
-The Backgammon skill is linked into `.claude/skills/`, so Claude Code finds it automatically in this folder.
+The game skills are linked into `.claude/skills/`, so Claude Code finds them automatically in this folder.
 
 ## Play
 
@@ -109,6 +110,7 @@ in [skills/ttsim-backgammon](skills/ttsim-backgammon).
 | `ttsim_mcp/server.py` | The MCP server: thin layer exposing those functions as tools |
 | `ttsim_mcp/lua/` | All Lua the server sends to TTSim, as template files |
 | `skills/ttsim-backgammon/` | The Backgammon skill (`SKILL.md`) and its Lua board helper (`bg.lua`) |
+| `skills/ttsim-nine-mens-morris/` | The Nine Men's Morris skill (`SKILL.md`) and its Lua board helper (`nmm.lua`) |
 | `docs/requirements.md` | Requirements, findings about TTSim behaviour, and the changelog |
 | `tests/` | Unit, contract (against a fake TTSim) and integration tests (against the real game) |
 
@@ -134,7 +136,8 @@ Some integration tests show messages in the TTSim chat on purpose (a print, and 
 - [x] Access to TTSim through the External Editor API
 - [x] MCP server with raw access tools
 - [x] 3D controls and physics dice
-- [ ] Backgammon: a complete game against Claude (in progress)
+- [x] Backgammon: Claude plays against you (v0.1.0)
+- [ ] Nine Men's Morris: coin toss, placing, moving, flying, mills (in progress)
 - [ ] Warhammer Age of Sigmar (Spearhead), using the mod's own dice area
 
 ## License

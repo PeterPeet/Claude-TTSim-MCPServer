@@ -145,7 +145,7 @@ Generic, in layer 2; no game knowledge.
 standard notation (a1–g7, row 1 on Peter's side, column a on his left), the rules (placing, moving, flying with three,
 mills, removing, winning) and the turn flow with Peter.
 
-**REQ-NMM-02 Read position** — `agreed`
+**REQ-NMM-02 Read position** — `done`
 Claude can read the position from the table: which of the 24 points hold red or blue tokens, how many tokens each
 player still has in hand (on the rack) and how many were removed.
 - Acceptance: on a freshly reset board Claude reports 24 empty points and 9 tokens in hand per player.
@@ -277,3 +277,7 @@ Claude and Peter play a complete game to a win (opponent reduced to two tokens, 
 - 2026-10-05 — REQ-DICE-03 implemented: `roll_dice` flips coins with TTSim's randomize (runs the coin's own script),
   `read_dice` reports face names and includes coins. Spike: the mod's coin rose 4.3–6.0 units and showed both faces in
   each of 6 flips. Contract tests pass; `pytest -m ttsim` (coin integration test) still to run outside a session.
+- 2026-10-05 — Skill `skills/ttsim-nine-mens-morris` (SKILL.md + Lua helper `nmm.lua`, loaded as `TTSIM_NMM`), linked
+  into `.claude/skills/`. REQ-NMM-02 done: on the reset board the helper reports 24 empty points and 9 tokens in hand
+  per colour. Planning checks verified live (placing, refusing moves while placing, invalid points, removal without
+  mill); mill/removal and flying still to be shown in play.
