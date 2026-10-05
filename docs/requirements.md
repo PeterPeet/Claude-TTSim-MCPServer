@@ -134,7 +134,7 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 Table: the Steam Workshop mod "Nine Men's Morris" (see Q11). Peter plays red (rack on his side), Claude blue.
 Removed tokens are put on the table beside their owner's rack.
 
-**REQ-DICE-03 Flip coins** — `agreed`
+**REQ-DICE-03 Flip coins** — `done`
 `roll_dice` and `read_dice` also accept coins (any object with named faces): a coin is flipped with TTSim's own
 randomize (which runs the coin's script, if it has one) and its result is reported by face name, e.g. "Heads".
 Generic, in layer 2; no game knowledge.
@@ -281,3 +281,5 @@ Claude and Peter play a complete game to a win (opponent reduced to two tokens, 
   into `.claude/skills/`. REQ-NMM-02 done: on the reset board the helper reports 24 empty points and 9 tokens in hand
   per colour. Planning checks verified live (placing, refusing moves while placing, invalid points, removal without
   mill); mill/removal and flying still to be shown in play.
+- 2026-10-05 — REQ-DICE-03 done: `pytest -m ttsim` with Nine Men's Morris loaded, 18 passed (incl. the coin flip and
+  the four Nine Men's Morris helper tests), 9 skipped (need Backgammon or dice on the table).
