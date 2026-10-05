@@ -175,7 +175,7 @@ Claude and Peter play a complete game to a win (opponent reduced to two tokens, 
 Generic tool needed by the next game skill: Claude reads the text of cards and rule sheets on the table. The game
 skill itself and its requirements are kept privately, outside this repository.
 
-**REQ-OBJ-08 Card face image** — `agreed`
+**REQ-OBJ-08 Card face image** — `done`
 Generic, layer 2: return the face of a card (or any custom tile/token) as an image Claude can read, cut out of
 the deck's face sheet by its CardID and scaled to at most 2000 px. For a custom PDF object, return the text of its pages
 instead (with the page the object currently shows). Images and PDFs are taken from TTSim's local cache
@@ -184,7 +184,7 @@ the tool says so.
 - Acceptance: for a card in Blue's hand, the tool returns the single card (not the whole sheet), and its text is
   readable. For a custom PDF object, the tool returns the text of its pages.
 
-**REQ-OBJ-09 Draw markers** — `agreed`
+**REQ-OBJ-09 Draw markers** — `done`
 Generic, layer 2: draw temporary circles and polylines on the table (TTSim vector lines) to show the player areas,
 ranges or planned moves, each with a colour, and remove them again by a label. Markers are added to the existing vector
 lines, never replacing the player's own drawings, and can be listed so a skill can check they are still there.
@@ -323,3 +323,5 @@ lines, never replacing the player's own drawings, and can be listed so a skill c
 - 2026-10-05 — REQ-OBJ-09 implemented: draw_markers, list_markers, clear_markers. Unit and contract tests pass; the Lua
   templates were run against the real game via run_lua (a stand-in player line survived drawing and clearing; the
   label registry persists between calls until the game is reloaded). Integration test pending (port 39998 in use).
+- 2026-10-05 — REQ-OBJ-08 and REQ-OBJ-09 done: `pytest -m ttsim -k "req_obj_08 or req_obj_09"` 2/2 passed against the real game
+  (run by Peter); both tools were also used live (card images, PDF text, objective markers).
