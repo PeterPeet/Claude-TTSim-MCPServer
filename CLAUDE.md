@@ -47,6 +47,8 @@ If a skill needs a capability the tools lack, add a *generic* tool to layer 2.
 
 - All Lua sent to TTSim lives in `ttsim_mcp/lua/` as template files, not as inline strings in Python.
   The exception is the `run_lua` tool, which sends caller-supplied Lua as-is.
+- Always initialise locals: write `local x = nil`, never `local x`. TTSim's Lua (MoonSharp) does not reset an
+  uninitialised local to nil; it can hold a stale value from earlier code (found 2026-10-05, see Q10).
 - Never send "Save & Play" (messageID 1) or anything else that overwrites the loaded mod's scripts
   without Peter's explicit consent.
 

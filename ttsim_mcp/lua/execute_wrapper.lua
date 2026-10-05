@@ -1,6 +1,6 @@
 local __ok, __res = pcall(function() {{code}}
 end)
-local __payload
+local __payload = nil
 if __ok then
   __payload = { ok = true, value = __res }
 else

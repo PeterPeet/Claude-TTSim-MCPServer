@@ -110,7 +110,7 @@ Read the current face value of dice without rolling them (for dice Peter rolled)
 how to find the board, checkers and dice, the mapping of the 24 points, bar and bear-off to table coordinates,
 the rules, and the turn flow with Peter.
 
-**REQ-BG-02 Read position** — `agreed`
+**REQ-BG-02 Read position** — `done`
 Following the skill, Claude can read the full position (checkers per point, bar, borne off) from the table.
 - Acceptance: on a freshly set-up board Claude reports the standard starting position.
 
@@ -183,6 +183,9 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 - **Q6** Does `getScripts` (messageID 0) have any side effects on the loaded game?
   — **Resolved 2026-10-05 by avoiding it:** `get_scripts` reads scripts with read-only Lua
   (`getLuaScript`, `UI.getXml`), so messageID 0 is never sent. The game name comes from `Info.name`.
+- **Q10** Lua quirks in TTSim. — **Found 2026-10-05:** a local declared without a value (`local row`) is not
+  guaranteed to be nil in TTSim's Lua (MoonSharp); it held a stale table from earlier code. Always write
+  `local row = nil`. Rule added to CLAUDE.md.
 
 ## Changelog
 
@@ -211,3 +214,8 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 - 2026-10-05 — Renamed TTS → TTSim throughout (Peter's request), to avoid confusion with text-to-speech: package
   `ttsim_mcp`, MCP server `ttsim`, tool `ttsim_status`, error classes `TTSim*Error`, pytest marker `ttsim`, skill
   `ttsim-backgammon`. No requirement changed. The project folder keeps its name.
+- 2026-10-05 — Phase 4 started. Board mapped (snap points + ray casts): light plays from the left half (home board
+  left, z < 0), brown from the right; raised bar at z ±0.7; bear-off tray at z ≈ −10.2. Skill
+  `skills/ttsim-backgammon` (SKILL.md + Lua helper `bg.lua`, loaded once per session as `TTSIM_BG`), linked into
+  `.claude/skills/` for Claude Code. REQ-BG-02 done: on the real board the helper reports the standard starting
+  position for both colours (pip 167 each). Claude plays light with the white dice, rolling them off the board.

@@ -5,7 +5,7 @@ local plan = {}
 for _, m in ipairs(args.moves) do
   local o = getObjectFromGUID(m.guid)
   if o == nil then error("No object with GUID '" .. tostring(m.guid) .. "'", 0) end
-  local pos
+  local pos = nil
   if m.offset ~= nil then
     pos = o.getPosition() + v(m.offset)
   else
