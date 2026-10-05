@@ -105,7 +105,7 @@ Read the current face value of dice without rolling them (for dice Peter rolled)
 
 ## Phase 4 — Backgammon (REQ-BG)
 
-**REQ-BG-01 Skill** — `agreed`
+**REQ-BG-01 Skill** — `done`
 `skills/ttsim-backgammon/SKILL.md` explains how to play Backgammon in TTSim with the TTSim-MCP tools:
 how to find the board, checkers and dice, the mapping of the 24 points, bar and bear-off to table coordinates,
 the rules, and the turn flow with Peter.
@@ -114,11 +114,11 @@ the rules, and the turn flow with Peter.
 Following the skill, Claude can read the full position (checkers per point, bar, borne off) from the table.
 - Acceptance: on a freshly set-up board Claude reports the standard starting position.
 
-**REQ-BG-03 Make a move** — `agreed`
+**REQ-BG-03 Make a move** — `done`
 Claude rolls its dice, chooses a legal move, states it in backgammon notation, and moves the checkers
 in TTSim onto the correct points, stacked neatly.
 
-**REQ-BG-04 Peter's turn** — `agreed`
+**REQ-BG-04 Peter's turn** — `done`
 Claude waits for Peter to say he has moved, re-reads the position, and points out if the move looks illegal
 (Peter decides).
 
@@ -126,7 +126,7 @@ Claude waits for Peter to say he has moved, re-reads the position, and points ou
 Claude and Peter play a complete game, including hitting, entering from the bar and bearing off.
 Doubling cube is optional.
 
-**REQ-BG-06 Install** — `agreed`
+**REQ-BG-06 Install** — `done`
 The skill and MCP server can be installed into Claude Code from this repo with documented steps.
 
 ---
@@ -219,3 +219,7 @@ The skill and MCP server can be installed into Claude Code from this repo with d
   `skills/ttsim-backgammon` (SKILL.md + Lua helper `bg.lua`, loaded once per session as `TTSIM_BG`), linked into
   `.claude/skills/` for Claude Code. REQ-BG-02 done: on the real board the helper reports the standard starting
   position for both colours (pip 167 each). Claude plays light with the white dice, rolling them off the board.
+- 2026-10-05 — Milestone 1 (Peter): Claude plays Backgammon against Peter in TTSim. Opening roll and two full turns
+  each played live: REQ-BG-01, -03, -04 done; REQ-BG-06 done (setup in README.md). REQ-BG-05 (a complete game with
+  hits, bar entry and bearing off) stays open: those parts are verified only by planning, not yet in play.
+  `main` updated to this state. Next: a skill for another game.
