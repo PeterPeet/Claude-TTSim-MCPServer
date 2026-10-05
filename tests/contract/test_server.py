@@ -124,6 +124,7 @@ TABLE_TOOLS = {
     "highlight",
     "roll_dice",
     "read_dice",
+    "card_face",
 }
 
 
@@ -159,3 +160,62 @@ async def test_req_mcp_04_invalid_arguments_are_readable_tool_errors(fake_and_co
         result = await client.call_tool("roll_dice", {"guids": []})
     assert result.is_error
     assert "at least one" in result.content[0].text
+
+
+async def test_req_obj_08_card_face_tool_returns_image_and_info(
+    fake_and_conn: Pair, tmp_path, monkeypatch
+) -> None:
+    from PIL import Image
+
+    from ttsim_mcp import table
+
+    fake, conn = fake_and_conn
+    Image.new("RGB", (40, 30)).save(tmp_path / "httpsexampletestc.png")
+    monkeypatch.setattr(table, "IMAGE_CACHE_DIRS", [tmp_path])
+    fake.respond(
+        "ttsim_mcp:card_face",
+        Value(
+            {
+                "guid": "c1",
+                "name": "",
+                "type": "Card",
+                "card_id": 100,
+                "url": "https://example.test/c",
+                "index": 0,
+                "columns": 1,
+                "rows": 1,
+            }
+        ),
+    )
+    async with Client(create_server(conn)) as client:
+        result = await client.call_tool("card_face", {"guid": "c1"})
+    assert not result.is_error
+    assert result.content[0].type == "image"
+    assert result.content[0].mime_type == "image/jpeg"
+    assert json.loads(result.content[1].text)["card_id"] == 100
+
+
+async def test_req_obj_08_card_face_tool_returns_pdf_text(fake_and_conn: Pair, tmp_path, monkeypatch) -> None:
+    from tests.unit.test_card_face import make_pdf
+    from ttsim_mcp import table
+
+    fake, conn = fake_and_conn
+    make_pdf(tmp_path / "httpsexampletestp.pdf", ["PAGE ONE"])
+    monkeypatch.setattr(table, "PDF_CACHE_DIRS", [tmp_path])
+    fake.respond(
+        "ttsim_mcp:card_face",
+        Value(
+            {
+                "guid": "p1",
+                "name": "",
+                "type": "Tile",
+                "kind": "pdf",
+                "url": "https://example.test/p",
+                "page": 0,
+            }
+        ),
+    )
+    async with Client(create_server(conn)) as client:
+        result = await client.call_tool("card_face", {"guid": "p1"})
+    assert not result.is_error
+    assert payload(result)["pages"] == ["PAGE ONE"]

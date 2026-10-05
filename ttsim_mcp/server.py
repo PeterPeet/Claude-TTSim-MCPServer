@@ -9,6 +9,7 @@ from typing import Any
 import anyio
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.server.mcpserver.utilities.types import Image
 
 from ttsim_mcp import access, table
 from ttsim_mcp.comms import TTSimConnection, TTSimError
@@ -157,6 +158,18 @@ def create_server(conn: TTSimConnection) -> MCPServer:
         Each die has value, resting, tilt, cocked, tint and position.
         """
         return await _call(partial(table.read_dice, conn, guids, cocked_tilt=cocked_tilt))
+
+    @server.tool()
+    async def card_face(guid: str) -> Any:
+        """The face of a card (or custom tile/token) as an image, so its text can be read, plus where it came
+        from (card_id, sheet url, grid cell). For a custom PDF object: its text per page (`pages`) and the
+        page it shows (`page`). Taken from TTSim's local cache; nothing is downloaded.
+        Fails if the file is not cached, i.e. TTSim has not loaded it on this machine.
+        """
+        face = await _call(table.card_face, conn, guid)
+        if face.jpeg is None:
+            return {**face.info, "pages": face.pages}
+        return [Image(data=face.jpeg, format="jpeg"), face.info]
 
     return server
 

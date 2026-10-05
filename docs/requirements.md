@@ -17,7 +17,8 @@ Age of Sigmar (Spearhead) is the long-term goal.
 
 ## Non-goals (for now)
 
-- Visual recognition from screenshots
+- Visual recognition from screenshots (reading a single card or rule sheet image that the game itself uses is allowed,
+  see REQ-OBJ-08)
 - Multiplayer or networked games beyond Peter's own machine
 - Editing or saving the loaded mod's scripts
 - Automatic enforcement of every rule (Peter remains the referee for edge cases)
@@ -169,6 +170,27 @@ A new game starts by calling the mod's own reset function (`resetPieces` on the 
 **REQ-NMM-07 Full game** — `done`
 Claude and Peter play a complete game to a win (opponent reduced to two tokens, or unable to move).
 
+## Phase 6 — Card and document faces (REQ-OBJ-08)
+
+Generic tool needed by the next game skill: Claude reads the text of cards and rule sheets on the table. The game
+skill itself and its requirements are kept privately, outside this repository.
+
+**REQ-OBJ-08 Card face image** — `agreed`
+Generic, layer 2: return the face of a card (or any custom tile/token) as an image Claude can read, cut out of
+the deck's face sheet by its CardID and scaled to at most 2000 px. For a custom PDF object, return the text of its pages
+instead (with the page the object currently shows). Images and PDFs are taken from TTSim's local cache
+(`~/Library/Tabletop Simulator/Mods/Images`, `.../Mods/PDF`), so nothing is downloaded; if the file is not cached,
+the tool says so.
+- Acceptance: for a card in Blue's hand, the tool returns the single card (not the whole sheet), and its text is
+  readable. For a custom PDF object, the tool returns the text of its pages.
+
+**REQ-OBJ-09 Draw markers** — `agreed`
+Generic, layer 2: draw temporary circles and polylines on the table (TTSim vector lines) to show the player areas,
+ranges or planned moves, each with a colour, and remove them again by a label. Markers are added to the existing vector
+lines, never replacing the player's own drawings, and can be listed so a skill can check they are still there.
+- Acceptance: drawing a 3" circle at a point shows it in TTSim; a line the player drew beforehand is still there;
+  clearing by label removes only the tool's markers.
+
 ---
 
 ## Open questions (resolve by spike against real TTSim)
@@ -294,3 +316,7 @@ Claude and Peter play a complete game to a win (opponent reduced to two tokens, 
   b6-d7 (not adjacent), closing d5-d6-d7 and removing a4, while the helper refused a non-adjacent move for red
   (6 tokens, cannot fly yet). REQ-NMM-06 done: `reset` returned all 18 tokens to the racks; the helper then read
   24 empty points and 9 in hand per colour.
+- 2026-10-05 — Phase 6 drafted and agreed: REQ-OBJ-08 (card and PDF faces from TTSim's local cache, extended to PDF
+  objects at Peter's request). Requirements of the game skill that needs it are kept privately.
+- 2026-10-05 — REQ-OBJ-09 drafted (draw markers), proposed while marking objectives on a battlefield.
+- 2026-10-05 — REQ-OBJ-09 marked `agreed` by Peter.
