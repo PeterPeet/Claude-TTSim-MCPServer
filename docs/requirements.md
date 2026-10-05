@@ -129,6 +129,45 @@ Doubling cube is optional.
 **REQ-BG-06 Install** — `done`
 The skill and MCP server can be installed into Claude Code from this repo with documented steps.
 
+## Phase 5 — Nine Men's Morris (REQ-NMM, REQ-DICE-03)
+
+Table: the Steam Workshop mod "Nine Men's Morris" (see Q11). Peter plays red (rack on his side), Claude blue.
+
+**REQ-DICE-03 Flip coins** — `draft`
+`roll_dice` and `read_dice` also accept coins (any object with named faces): a coin is flipped with TTSim's own
+randomize (which runs the coin's script, if it has one) and its result is reported by face name, e.g. "Heads".
+Generic, in layer 2; no game knowledge.
+- Acceptance: flipping the mod's coin visibly throws it and returns "Heads" or "Tails" matching what TTSim shows.
+
+**REQ-NMM-01 Skill** — `draft`
+`skills/ttsim-nine-mens-morris/SKILL.md` explains the table (board, racks, tokens, coin, reset button), the
+standard notation (a1–g7, row 1 on Peter's side, column a on his left), the rules (placing, moving, flying with three,
+mills, removing, winning) and the turn flow with Peter.
+
+**REQ-NMM-02 Read position** — `draft`
+Claude can read the position from the table: which of the 24 points hold red or blue tokens, how many tokens each
+player still has in hand (on the rack) and how many were removed.
+- Acceptance: on a freshly reset board Claude reports 24 empty points and 9 tokens in hand per player.
+
+**REQ-NMM-03 Coin toss** — `draft`
+Who starts is decided by a coin flip: Peter calls heads or tails, Claude flips the coin (REQ-DICE-03) and reads it.
+
+**REQ-NMM-04 Claude's turn** — `draft`
+Claude places a token from its rack onto a free point (placing phase), or moves one to an adjacent free point
+(moving phase), or to any free point when it has three left (flying). On closing a mill it removes one of Peter's
+tokens following the rules and puts it beside the board. Every action is stated in notation (e.g. `d6`, `d6-d5`,
+`d6-d5, removes b4`).
+
+**REQ-NMM-05 Peter's turn** — `draft`
+Claude waits until Peter says he has moved, reads the position, works out his move (and any removal), and points out
+if it looks illegal (Peter decides).
+
+**REQ-NMM-06 Reset** — `draft`
+A new game starts by calling the mod's own reset function (`resetPieces` on the reset button), with Peter's consent.
+
+**REQ-NMM-07 Full game** — `draft`
+Claude and Peter play a complete game to a win (opponent reduced to two tokens, or unable to move).
+
 ---
 
 ## Open questions (resolve by spike against real TTSim)
@@ -186,6 +225,14 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 - **Q10** Lua quirks in TTSim. — **Found 2026-10-05:** a local declared without a value (`local row`) is not
   guaranteed to be nil in TTSim's Lua (MoonSharp); it held a stale table from earlier code. Always write
   `local row = nil`. Rule added to CLAUDE.md.
+- **Q11** How is the Workshop mod "Nine Men's Morris" built? — **Answered 2026-10-05 (spike):** main board
+  (type `Board`, centred at the origin) with 24 snap points on three nested squares (half-sizes 6.27, 4.18, 2.09;
+  height 2.13), matching the 7 × 7 grid of the standard notation with a step of 2.09. Two racks with 9 snap points
+  each: red tokens (`8b3333`, type `Generic`) at z = −11.25 (Peter's side), blue (`1f689b`) at z = +11.25. A coin
+  (type `Coin`, faces "Heads" = value 1, "Tails" = value 2) whose script flips it with physics on randomize. A reset
+  button (type `Tile`) whose script function `resetPieces()` glides all tokens back to the racks; it creates no
+  clickable button, so it is called with `call("resetPieces")`. Unlike the built-in Backgammon, this saved mod's
+  Global script lists the token GUIDs, so they are stable here; the skill still finds tokens by tint.
 
 ## Changelog
 
@@ -223,3 +270,5 @@ The skill and MCP server can be installed into Claude Code from this repo with d
   each played live: REQ-BG-01, -03, -04 done; REQ-BG-06 done (setup in README.md). REQ-BG-05 (a complete game with
   hits, bar entry and bearing off) stays open: those parts are verified only by planning, not yet in play.
   `main` updated to this state. Next: a skill for another game.
+- 2026-10-05 — Phase 5 drafted: Nine Men's Morris (REQ-NMM-01..07) and coin flips (REQ-DICE-03), all `draft`.
+  Q11 recorded from the spike on the Workshop mod.
