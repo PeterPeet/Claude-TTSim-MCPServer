@@ -1,4 +1,4 @@
--- tts_mcp:table_geometry  Read-only. Table type and bounds, plus global snap points.
+-- ttsim_mcp:table_geometry  Read-only. Table type and bounds, plus global snap points.
 local function vec(v) return { v.x, v.y, v.z } end
 local result = { table = { type = Tables.getTable() }, snap_points = {} }
 local t = Tables.getTableObject()

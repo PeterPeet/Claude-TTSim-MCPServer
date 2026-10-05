@@ -1,4 +1,4 @@
-"""Contract tests for tts_mcp.comms against the fake TTS (REQ-COM-01..06)."""
+"""Contract tests for ttsim_mcp.comms against the fake TTSim (REQ-COM-01..06)."""
 
 from __future__ import annotations
 
@@ -8,16 +8,16 @@ import time
 import pytest
 
 from tests.conftest import wait_until
-from tests.fake_tts import CompileError, FakeTTS, LuaError, NoReply, Value, free_port
-from tts_mcp.comms import (
-    TTSConnection,
-    TTSListenerError,
-    TTSLuaError,
-    TTSNotRunningError,
-    TTSTimeoutError,
+from tests.fake_ttsim import CompileError, FakeTTSim, LuaError, NoReply, Value, free_port
+from ttsim_mcp.comms import (
+    TTSimConnection,
+    TTSimListenerError,
+    TTSimLuaError,
+    TTSimNotRunningError,
+    TTSimTimeoutError,
 )
 
-Pair = tuple[FakeTTS, TTSConnection]
+Pair = tuple[FakeTTSim, TTSimConnection]
 
 
 # REQ-COM-01 Execute Lua
@@ -71,14 +71,14 @@ def test_req_com_01_consecutive_calls_use_distinct_return_ids(fake_and_conn: Pai
 
 
 def test_req_com_02_default_timeout_is_5_seconds() -> None:
-    assert TTSConnection().timeout == 5.0
+    assert TTSimConnection().timeout == 5.0
 
 
 def test_req_com_02_no_reply_raises_timeout(fake_and_conn: Pair) -> None:
     fake, conn = fake_and_conn
     fake.respond("return 1", NoReply())
     start = time.monotonic()
-    with pytest.raises(TTSTimeoutError):
+    with pytest.raises(TTSimTimeoutError):
         conn.execute_lua("return 1", timeout=0.3)
     assert time.monotonic() - start < 1.0
 
@@ -87,7 +87,7 @@ def test_req_com_02_late_reply_after_timeout_does_not_break_next_call(fake_and_c
     fake, conn = fake_and_conn
     fake.respond("return 'silent'", NoReply())
     fake.respond("return 2", Value(2))
-    with pytest.raises(TTSTimeoutError):
+    with pytest.raises(TTSimTimeoutError):
         conn.execute_lua("return 'silent'", timeout=0.2)
     assert conn.execute_lua("return 2") == 2
 
@@ -98,14 +98,14 @@ def test_req_com_02_late_reply_after_timeout_does_not_break_next_call(fake_and_c
 def test_req_com_03_runtime_error_raises_lua_error_with_message(fake_and_conn: Pair) -> None:
     fake, conn = fake_and_conn
     fake.respond('error("boom")', LuaError("[Global] executeScript:(1,0-13): boom"))
-    with pytest.raises(TTSLuaError, match="boom"):
+    with pytest.raises(TTSimLuaError, match="boom"):
         conn.execute_lua('error("boom")')
 
 
 def test_req_com_03_compile_error_raises_lua_error_with_message(fake_and_conn: Pair) -> None:
     fake, conn = fake_and_conn
     fake.respond("return 1 +", CompileError("[Global] executeScript:(2,0-3): unexpected symbol near 'end'"))
-    with pytest.raises(TTSLuaError, match="unexpected symbol"):
+    with pytest.raises(TTSimLuaError, match="unexpected symbol"):
         conn.execute_lua("return 1 +")
 
 
@@ -114,8 +114,8 @@ def test_req_com_03_compile_error_raises_lua_error_with_message(fake_and_conn: P
 
 def test_req_com_04_nothing_listening_raises_not_running() -> None:
     with (
-        TTSConnection(send_port=free_port(), listen_port=free_port(), timeout=1.0) as conn,
-        pytest.raises(TTSNotRunningError, match="Tabletop Simulator"),
+        TTSimConnection(send_port=free_port(), listen_port=free_port(), timeout=1.0) as conn,
+        pytest.raises(TTSimNotRunningError, match="Tabletop Simulator"),
     ):
         conn.execute_lua("return 1")
 
@@ -125,8 +125,8 @@ def test_req_com_04_reply_port_in_use_raises_listener_error() -> None:
         blocker.bind(("127.0.0.1", 0))
         blocker.listen()
         busy_port = blocker.getsockname()[1]
-        conn = TTSConnection(send_port=free_port(), listen_port=busy_port)
-        with pytest.raises(TTSListenerError, match=str(busy_port)):
+        conn = TTSimConnection(send_port=free_port(), listen_port=busy_port)
+        with pytest.raises(TTSimListenerError, match=str(busy_port)):
             conn.start()
 
 
@@ -169,8 +169,8 @@ def test_req_com_05_events_since_returns_only_newer(fake_and_conn: Pair) -> None
 def test_req_com_05_buffer_is_bounded() -> None:
     reply_port = free_port()
     with (
-        FakeTTS(reply_port=reply_port) as fake,
-        TTSConnection(send_port=fake.port, listen_port=reply_port, event_buffer_size=3) as conn,
+        FakeTTSim(reply_port=reply_port) as fake,
+        TTSimConnection(send_port=fake.port, listen_port=reply_port, event_buffer_size=3) as conn,
     ):
         conn.start()
         for i in range(5):
@@ -182,12 +182,12 @@ def test_req_com_05_buffer_is_bounded() -> None:
 def test_req_com_05_lua_errors_are_also_kept_as_events(fake_and_conn: Pair) -> None:
     fake, conn = fake_and_conn
     fake.respond("return 1 +", CompileError("unexpected symbol"))
-    with pytest.raises(TTSLuaError):
+    with pytest.raises(TTSimLuaError):
         conn.execute_lua("return 1 +")
     assert any(e.kind == "error" for e in conn.events())
 
 
-# REQ-COM-06 Fake TTS
+# REQ-COM-06 Fake TTSim
 
 
 def test_req_com_06_fake_records_received_messages(fake_and_conn: Pair) -> None:

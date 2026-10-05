@@ -1,6 +1,6 @@
 """Unit tests for the Lua wrapper used by execute_lua (REQ-COM-01, REQ-COM-03)."""
 
-from tts_mcp.comms import wrap_lua
+from ttsim_mcp.comms import wrap_lua
 
 
 def test_req_com_01_wrapper_keeps_code_on_first_line() -> None:

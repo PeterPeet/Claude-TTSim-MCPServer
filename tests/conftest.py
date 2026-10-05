@@ -5,17 +5,17 @@ from collections.abc import Callable, Iterator
 
 import pytest
 
-from tests.fake_tts import FakeTTS, free_port
-from tts_mcp.comms import TTSConnection
+from tests.fake_ttsim import FakeTTSim, free_port
+from ttsim_mcp.comms import TTSimConnection
 
 
 @pytest.fixture
-def fake_and_conn() -> Iterator[tuple[FakeTTS, TTSConnection]]:
-    """A fake TTS and a connection to it, on ephemeral ports so a running real TTS is never touched."""
+def fake_and_conn() -> Iterator[tuple[FakeTTSim, TTSimConnection]]:
+    """A fake TTSim and a connection to it, on ephemeral ports so a running real TTSim is never touched."""
     reply_port = free_port()
     with (
-        FakeTTS(reply_port=reply_port) as fake,
-        TTSConnection(send_port=fake.port, listen_port=reply_port, timeout=1.0) as conn,
+        FakeTTSim(reply_port=reply_port) as fake,
+        TTSimConnection(send_port=fake.port, listen_port=reply_port, timeout=1.0) as conn,
     ):
         yield fake, conn
 

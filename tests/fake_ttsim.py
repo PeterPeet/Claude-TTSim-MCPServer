@@ -1,8 +1,8 @@
 """Fake Tabletop Simulator for contract tests (REQ-COM-06).
 
 Mimics the External Editor API as observed in the 2026-10-05 spike (see docs/requirements.md, Q1/Q2):
-- receives one JSON message per connection on its own port (real TTS: 39999);
-- answers by opening a new connection to the client's reply port (real TTS: 39998) per message,
+- receives one JSON message per connection on its own port (real TTSim: 39999);
+- answers by opening a new connection to the client's reply port (real TTSim: 39998) per message,
   sending one pretty-printed JSON object and closing.
 
 Responses are scripted per Lua fragment: the first registered fragment contained in the received
@@ -35,14 +35,14 @@ class LuaError:
 
 @dataclass
 class CompileError:
-    """The script failed to compile: TTS sends an error message without returnID, then an empty reply."""
+    """The script failed to compile: TTSim sends an error message without returnID, then an empty reply."""
 
     message: str
 
 
 @dataclass
 class NoReply:
-    """TTS never answers (e.g. a raw Lua table was returned, or TTS is busy)."""
+    """TTSim never answers (e.g. a raw Lua table was returned, or TTSim is busy)."""
 
 
 Response = Value | LuaError | CompileError | NoReply
@@ -54,7 +54,7 @@ def free_port() -> int:
         return s.getsockname()[1]
 
 
-class FakeTTS:
+class FakeTTSim:
     def __init__(self, reply_port: int) -> None:
         self.reply_port = reply_port
         self.received: list[dict[str, Any]] = []
@@ -68,7 +68,7 @@ class FakeTTS:
         self.port: int = self._server.getsockname()[1]
         self._thread = threading.Thread(target=self._serve, daemon=True)
 
-    def __enter__(self) -> FakeTTS:
+    def __enter__(self) -> FakeTTSim:
         self._thread.start()
         return self
 
@@ -90,7 +90,7 @@ class FakeTTS:
         return NoReply()
 
     def push_event(self, message: dict[str, Any]) -> None:
-        """Send an unsolicited message, as TTS does for print(), errors, game loaded, etc."""
+        """Send an unsolicited message, as TTSim does for print(), errors, game loaded, etc."""
         self._send(message)
 
     def _serve(self) -> None:

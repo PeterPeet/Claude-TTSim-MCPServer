@@ -1,4 +1,4 @@
--- tts_mcp:roll_dice  Rolls dice with TTS's physics roll (lifted and spun, as when a player presses R).
+-- ttsim_mcp:roll_dice  Rolls dice with TTSim's physics roll (lifted and spun, as when a player presses R).
 local args = JSON.decode([==[{{args}}]==])
 local dice = {}
 for _, guid in ipairs(args.guids) do

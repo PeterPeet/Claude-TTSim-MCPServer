@@ -1,12 +1,12 @@
 """Raw access to Tabletop Simulator's External Editor API (layer 1, REQ-COM).
 
-Protocol as verified against real TTS (docs/requirements.md, Q1/Q2):
-- Messages to TTS: one JSON object per TCP connection to localhost:39999.
-- Messages from TTS: TTS opens a new connection to localhost:39998 for every message,
+Protocol as verified against real TTSim (docs/requirements.md, Q1/Q2):
+- Messages to TTSim: one JSON object per TCP connection to localhost:39999.
+- Messages from TTSim: TTSim opens a new connection to localhost:39998 for every message,
   sends one JSON object and closes it.
 - Execute Lua: send messageID 3; the reply is messageID 5 with the same returnID.
   Scripts are wrapped (lua/execute_wrapper.lua) so results and runtime errors come back as JSON.
-- Compile errors bypass the wrapper: TTS sends an error (messageID 3, no returnID) followed by
+- Compile errors bypass the wrapper: TTSim sends an error (messageID 3, no returnID) followed by
   a messageID 5 without returnValue.
 """
 
@@ -43,8 +43,8 @@ EVENT_KINDS = {
 
 
 def load_lua(name: str) -> str:
-    """Read a Lua template from tts_mcp/lua/."""
-    return resources.files("tts_mcp").joinpath(f"lua/{name}").read_text(encoding="utf-8")
+    """Read a Lua template from ttsim_mcp/lua/."""
+    return resources.files("ttsim_mcp").joinpath(f"lua/{name}").read_text(encoding="utf-8")
 
 
 def render_lua(name: str, args: dict[str, Any] | None = None) -> str:
@@ -58,28 +58,28 @@ def render_lua(name: str, args: dict[str, Any] | None = None) -> str:
 _WRAPPER = load_lua("execute_wrapper.lua")
 
 
-class TTSError(Exception):
+class TTSimError(Exception):
     """Base class for all errors talking to Tabletop Simulator."""
 
 
-class TTSTimeoutError(TTSError):
-    """TTS did not answer in time."""
+class TTSimTimeoutError(TTSimError):
+    """TTSim did not answer in time."""
 
 
-class TTSLuaError(TTSError):
-    """The Lua script failed in TTS; the message is the one TTS reported."""
+class TTSimLuaError(TTSimError):
+    """The Lua script failed in TTSim; the message is the one TTSim reported."""
 
 
-class TTSNotRunningError(TTSError):
-    """Nothing is listening on the TTS External Editor API port."""
+class TTSimNotRunningError(TTSimError):
+    """Nothing is listening on the TTSim External Editor API port."""
 
 
-class TTSListenerError(TTSError):
+class TTSimListenerError(TTSimError):
     """The reply port could not be opened, usually because another program already uses it."""
 
 
 @dataclass(frozen=True)
-class TTSEvent:
+class TTSimEvent:
     seq: int
     time: float
     kind: str
@@ -97,8 +97,8 @@ def wrap_lua(code: str) -> str:
     return _WRAPPER.replace("{{code}}", code, 1)
 
 
-class TTSConnection:
-    """Connection to a running TTS. Calls are serialised; events are buffered in the background."""
+class TTSimConnection:
+    """Connection to a running TTSim. Calls are serialised; events are buffered in the background."""
 
     def __init__(
         self,
@@ -112,7 +112,7 @@ class TTSConnection:
         self.send_port = send_port
         self.listen_port = listen_port
         self.timeout = timeout
-        self._events: deque[TTSEvent] = deque(maxlen=event_buffer_size)
+        self._events: deque[TTSimEvent] = deque(maxlen=event_buffer_size)
         self._event_seq = itertools.count(1)
         self._last_seq = 0
         self._state_lock = threading.Condition()
@@ -123,14 +123,14 @@ class TTSConnection:
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
 
-    def __enter__(self) -> TTSConnection:
+    def __enter__(self) -> TTSimConnection:
         return self
 
     def __exit__(self, *exc: object) -> None:
         self.close()
 
     def start(self) -> None:
-        """Open the reply port and start receiving messages from TTS. Idempotent."""
+        """Open the reply port and start receiving messages from TTSim. Idempotent."""
         if self._server is not None:
             return
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -138,10 +138,10 @@ class TTSConnection:
             server.bind((self.host, self.listen_port))
         except OSError as e:
             server.close()
-            raise TTSListenerError(
+            raise TTSimListenerError(
                 f"Cannot listen on {self.host}:{self.listen_port} for messages from Tabletop Simulator "
-                f"({e.strerror}). Another program is probably using the port, e.g. a TTS editor plugin "
-                "in VS Code/Atom or another TTS-MCP instance. Close it and try again."
+                f"({e.strerror}). Another program is probably using the port, e.g. a TTSim editor plugin "
+                "in VS Code/Atom or another TTSim-MCP instance. Close it and try again."
             ) from e
         server.listen()
         server.settimeout(0.1)
@@ -160,7 +160,7 @@ class TTSConnection:
             self._server = None
 
     def execute_lua(self, code: str, timeout: float | None = None) -> Any:
-        """Run Lua in TTS's global context and return its result as JSON-compatible Python data."""
+        """Run Lua in TTSim's global context and return its result as JSON-compatible Python data."""
         self.start()
         timeout = self.timeout if timeout is None else timeout
         with self._call_lock:
@@ -172,15 +172,15 @@ class TTSConnection:
             try:
                 self._send({"messageID": 3, "guid": "-1", "script": wrap_lua(code), "returnID": return_id})
                 if not call.done.wait(timeout):
-                    raise TTSTimeoutError(f"Tabletop Simulator did not answer within {timeout:g} s.")
+                    raise TTSimTimeoutError(f"Tabletop Simulator did not answer within {timeout:g} s.")
             finally:
                 with self._state_lock:
                     self._pending.pop(return_id, None)
         assert call.reply is not None
         return self._parse_reply(call.reply, seq_before)
 
-    def events(self, since: int = 0) -> list[TTSEvent]:
-        """Buffered messages TTS sent on its own, oldest first, with seq greater than `since`."""
+    def events(self, since: int = 0) -> list[TTSimEvent]:
+        """Buffered messages TTSim sent on its own, oldest first, with seq greater than `since`."""
         with self._state_lock:
             return [e for e in self._events if e.seq > since]
 
@@ -189,22 +189,22 @@ class TTSConnection:
             with socket.create_connection((self.host, self.send_port), timeout=self.timeout) as s:
                 s.sendall(json.dumps(message).encode("utf-8"))
         except (ConnectionRefusedError, TimeoutError) as e:
-            raise TTSNotRunningError(
+            raise TTSimNotRunningError(
                 f"Nothing is listening on {self.host}:{self.send_port}. Start Tabletop Simulator "
                 "and load a game, then try again."
             ) from e
 
     def _parse_reply(self, reply: dict[str, Any], seq_before: int) -> Any:
         if "returnValue" not in reply:
-            raise TTSLuaError(self._wait_for_error_after(seq_before))
+            raise TTSimLuaError(self._wait_for_error_after(seq_before))
         raw = reply["returnValue"]
         try:
             payload = json.loads(raw)
         except (TypeError, json.JSONDecodeError) as e:
-            raise TTSError(f"Unexpected reply from Tabletop Simulator: {raw!r}") from e
+            raise TTSimError(f"Unexpected reply from Tabletop Simulator: {raw!r}") from e
         if payload.get("ok"):
             return payload.get("value")
-        raise TTSLuaError(payload.get("error", "Lua error without message"))
+        raise TTSimLuaError(payload.get("error", "Lua error without message"))
 
     def _wait_for_error_after(self, seq_before: int) -> str:
         deadline = time.monotonic() + _COMPILE_ERROR_GRACE
@@ -215,7 +215,7 @@ class TTSConnection:
                     return str(errors[-1].message.get("error", "Lua error without message"))
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
-                    return "Lua error (TTS sent no error message)"
+                    return "Lua error (TTSim sent no error message)"
                 self._state_lock.wait(remaining)
 
     def _receive_loop(self) -> None:
@@ -252,6 +252,6 @@ class TTSConnection:
                 return
             seq = next(self._event_seq)
             kind = EVENT_KINDS.get(message.get("messageID"), "unknown")  # type: ignore[arg-type]
-            self._events.append(TTSEvent(seq=seq, time=time.time(), kind=kind, message=message))
+            self._events.append(TTSimEvent(seq=seq, time=time.time(), kind=kind, message=message))
             self._last_seq = seq
             self._state_lock.notify_all()

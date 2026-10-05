@@ -10,37 +10,37 @@ import anyio
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
-from tts_mcp import access, table
-from tts_mcp.comms import TTSConnection, TTSError
+from ttsim_mcp import access, table
+from ttsim_mcp.comms import TTSimConnection, TTSimError
 
 INSTRUCTIONS = """\
-Access to a running Tabletop Simulator (TTS) game through its External Editor API.
-Start with tts_status to see whether TTS is reachable and which game is loaded.
-run_lua is the universal tool: anything the TTS Lua API can do, it can do.
+Access to a running Tabletop Simulator (TTSim) game through its External Editor API.
+Start with ttsim_status to see whether TTSim is reachable and which game is loaded.
+run_lua is the universal tool: anything the TTSim Lua API can do, it can do.
 Game-specific knowledge (board layout, rules) comes from game skills, not from this server.
 """
 
 
 async def _call(fn: Callable[..., Any], *args: Any) -> Any:
-    """Run a blocking TTS call off the event loop; turn TTS errors into readable tool errors."""
+    """Run a blocking TTSim call off the event loop; turn TTSim errors into readable tool errors."""
     try:
         return await anyio.to_thread.run_sync(fn, *args)
-    except (TTSError, ValueError) as e:
+    except (TTSimError, ValueError) as e:
         raise ToolError(f"{type(e).__name__}: {e}") from e
 
 
-def create_server(conn: TTSConnection) -> MCPServer:
-    server = MCPServer("tts-mcp", instructions=INSTRUCTIONS)
+def create_server(conn: TTSimConnection) -> MCPServer:
+    server = MCPServer("ttsim-mcp", instructions=INSTRUCTIONS)
 
     @server.tool()
     async def run_lua(code: str) -> Any:
-        """Execute Lua in the TTS Global script context and return the result.
+        """Execute Lua in the TTSim Global script context and return the result.
 
         Use `return` to get a value back. Tables arrive as JSON objects/arrays; numbers, strings,
-        booleans and nil (null) work too. TTS objects (userdata) cannot be returned directly:
+        booleans and nil (null) work too. TTSim objects (userdata) cannot be returned directly:
         return their fields instead, e.g. `local o = getObjectFromGUID("abc123")
         return {name = o.getName(), pos = o.getPosition()}`.
-        Lua runtime and syntax errors come back as tool errors with the TTS message.
+        Lua runtime and syntax errors come back as tool errors with the TTSim message.
         Changes made here are visible to the player immediately, so act deliberately.
         """
         return await _call(conn.execute_lua, code)
@@ -56,7 +56,7 @@ def create_server(conn: TTSConnection) -> MCPServer:
 
     @server.tool()
     async def get_events(since: int = 0) -> Any:
-        """Messages TTS sent on its own since sequence number `since`: print output, Lua errors,
+        """Messages TTSim sent on its own since sequence number `since`: print output, Lua errors,
         game loaded/saved, objects created.
 
         Returns {"events": [{"seq", "time", "kind", ...}], "last_seq"}. Pass `last_seq` as `since`
@@ -65,13 +65,13 @@ def create_server(conn: TTSConnection) -> MCPServer:
         return await _call(access.get_events, conn, since)
 
     @server.tool()
-    async def tts_status() -> Any:
-        """Check whether TTS is reachable; if so, return the loaded game's name, object count and
-        seated players (colour, host). Never fails: an unreachable TTS is reported, not raised.
+    async def ttsim_status() -> Any:
+        """Check whether TTSim is reachable; if so, return the loaded game's name, object count and
+        seated players (colour, host). Never fails: an unreachable TTSim is reported, not raised.
         """
         return await _call(access.status, conn)
 
-    # 3D controls (REQ-OBJ, REQ-DICE). Positions, rotations and distances are TTS world units,
+    # 3D controls (REQ-OBJ, REQ-DICE). Positions, rotations and distances are TTSim world units,
     # given as [x, y, z]; y is up. Rotations are Euler angles in degrees.
 
     @server.tool()
@@ -133,13 +133,13 @@ def create_server(conn: TTSConnection) -> MCPServer:
     @server.tool()
     async def highlight(guid: str, color: str = "Yellow", seconds: float = 3.0) -> Any:
         """Highlight an object for a few seconds to point it out to the player.
-        color is a TTS colour name: White, Red, Orange, Yellow, Green, Blue, Purple, Pink, ...
+        color is a TTSim colour name: White, Red, Orange, Yellow, Green, Blue, Purple, Pink, ...
         """
         return await _call(table.highlight, conn, guid, color, seconds)
 
     @server.tool()
     async def roll_dice(guids: list[str], cocked_tilt: float = table.COCKED_TILT_DEGREES) -> Any:
-        """Roll dice with TTS's physics roll (visibly lifted and spun, like pressing R) and wait until all
+        """Roll dice with TTSim's physics roll (visibly lifted and spun, like pressing R) and wait until all
         have come to rest. Returns each die's value and tilt (degrees from lying flat), the total, and
         `cocked`: dice tilted more than `cocked_tilt` (default 10°, for flat surfaces), whose value may be
         disputed. Dice bounce: roll them where nothing else can be hit, e.g. in a dice tray.
@@ -159,5 +159,5 @@ def create_server(conn: TTSConnection) -> MCPServer:
 
 
 def main() -> None:
-    with TTSConnection() as conn:
+    with TTSimConnection() as conn:
         create_server(conn).run("stdio")

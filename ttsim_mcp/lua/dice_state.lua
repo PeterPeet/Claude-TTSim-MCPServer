@@ -1,4 +1,4 @@
--- tts_mcp:dice_state  Read-only. Values of the given dice, or of all dice on the table.
+-- ttsim_mcp:dice_state  Read-only. Values of the given dice, or of all dice on the table.
 local args = JSON.decode([==[{{args}}]==])
 local function vec(v) return { v.x, v.y, v.z } end
 local objects = {}

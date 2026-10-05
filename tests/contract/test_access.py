@@ -1,13 +1,13 @@
-"""Contract tests for tts_mcp.access against the fake TTS (REQ-MCP-02)."""
+"""Contract tests for ttsim_mcp.access against the fake TTSim (REQ-MCP-02)."""
 
 from __future__ import annotations
 
 from tests.conftest import wait_until
-from tests.fake_tts import FakeTTS, Value, free_port
-from tts_mcp import access
-from tts_mcp.comms import TTSConnection
+from tests.fake_ttsim import FakeTTSim, Value, free_port
+from ttsim_mcp import access
+from ttsim_mcp.comms import TTSimConnection
 
-Pair = tuple[FakeTTS, TTSConnection]
+Pair = tuple[FakeTTSim, TTSimConnection]
 
 
 def test_req_mcp_02_get_scripts_reads_via_lua(fake_and_conn: Pair) -> None:
@@ -30,7 +30,7 @@ def test_req_mcp_02_status_when_reachable(fake_and_conn: Pair) -> None:
 
 
 def test_req_mcp_02_status_when_not_running() -> None:
-    with TTSConnection(send_port=free_port(), listen_port=free_port(), timeout=0.5) as conn:
+    with TTSimConnection(send_port=free_port(), listen_port=free_port(), timeout=0.5) as conn:
         result = access.status(conn)
     assert result["reachable"] is False
     assert "Tabletop Simulator" in result["error"]

@@ -1,4 +1,4 @@
-"""Contract tests for the MCP adapter, in-process against the fake TTS (REQ-MCP-01..04)."""
+"""Contract tests for the MCP adapter, in-process against the fake TTSim (REQ-MCP-01..04)."""
 
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ from typing import Any
 import pytest
 from mcp import Client
 
-from tests.fake_tts import CompileError, FakeTTS, LuaError, NoReply, Value, free_port
-from tts_mcp.comms import TTSConnection
-from tts_mcp.server import create_server
+from tests.fake_ttsim import CompileError, FakeTTSim, LuaError, NoReply, Value, free_port
+from ttsim_mcp.comms import TTSimConnection
+from ttsim_mcp.server import create_server
 
 pytestmark = pytest.mark.anyio
 
-Pair = tuple[FakeTTS, TTSConnection]
+Pair = tuple[FakeTTSim, TTSimConnection]
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ async def test_req_mcp_01_lists_raw_access_tools(fake_and_conn: Pair) -> None:
     _, conn = fake_and_conn
     async with Client(create_server(conn)) as client:
         tools = {t.name: t for t in (await client.list_tools()).tools}
-    assert set(tools) >= {"run_lua", "get_scripts", "get_events", "tts_status"}
+    assert set(tools) >= {"run_lua", "get_scripts", "get_events", "ttsim_status"}
     assert all(t.description for t in tools.values())
 
 
@@ -51,11 +51,11 @@ async def test_req_mcp_02_run_lua_returns_table(fake_and_conn: Pair) -> None:
     assert payload(result) == {"a": 1}
 
 
-async def test_req_mcp_02_tts_status(fake_and_conn: Pair) -> None:
+async def test_req_mcp_02_ttsim_status(fake_and_conn: Pair) -> None:
     fake, conn = fake_and_conn
     fake.respond("Info.name", Value({"game": "Backgammon", "objects": 35, "players": []}))
     async with Client(create_server(conn)) as client:
-        result = await client.call_tool("tts_status", {})
+        result = await client.call_tool("ttsim_status", {})
     assert payload(result)["game"] == "Backgammon"
 
 
@@ -88,7 +88,7 @@ async def test_req_mcp_02_get_events(fake_and_conn: Pair) -> None:
         (NoReply(), "did not answer"),
     ],
 )
-async def test_req_mcp_04_tts_errors_are_readable_tool_errors(
+async def test_req_mcp_04_ttsim_errors_are_readable_tool_errors(
     fake_and_conn: Pair, response: Any, expected: str
 ) -> None:
     fake, conn = fake_and_conn
@@ -104,7 +104,7 @@ async def test_req_mcp_04_tts_errors_are_readable_tool_errors(
 
 
 async def test_req_mcp_04_not_running_is_readable_tool_error() -> None:
-    with TTSConnection(send_port=free_port(), listen_port=free_port(), timeout=0.5) as conn:
+    with TTSimConnection(send_port=free_port(), listen_port=free_port(), timeout=0.5) as conn:
         async with Client(create_server(conn)) as client:
             result = await client.call_tool("run_lua", {"code": "return 1"})
     assert result.is_error
@@ -136,7 +136,7 @@ async def test_req_mcp_03_lists_table_tools(fake_and_conn: Pair) -> None:
 
 async def test_req_mcp_03_list_objects_tool(fake_and_conn: Pair) -> None:
     fake, conn = fake_and_conn
-    fake.respond("tts_mcp:list_objects", Value({"objects": [{"guid": "a", "type": "Dice"}]}))
+    fake.respond("ttsim_mcp:list_objects", Value({"objects": [{"guid": "a", "type": "Dice"}]}))
     async with Client(create_server(conn)) as client:
         result = await client.call_tool("list_objects", {"type": "Dice"})
     assert payload(result) == {"objects": [{"guid": "a", "type": "Dice"}]}
@@ -145,7 +145,7 @@ async def test_req_mcp_03_list_objects_tool(fake_and_conn: Pair) -> None:
 async def test_req_mcp_03_measure_tool_accepts_guid_and_point(fake_and_conn: Pair) -> None:
     fake, conn = fake_and_conn
     fake.respond(
-        "tts_mcp:bounds",
+        "ttsim_mcp:bounds",
         Value({"objects": [{"guid": "a", "position": [0, 1, 0], "center": [0, 1, 0], "size": [2, 1, 2]}]}),
     )
     async with Client(create_server(conn)) as client:

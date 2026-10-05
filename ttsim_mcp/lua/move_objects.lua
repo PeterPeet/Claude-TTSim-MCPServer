@@ -1,4 +1,4 @@
--- tts_mcp:move_objects  Moves objects to a position or by an offset. All GUIDs are checked before anything moves.
+-- ttsim_mcp:move_objects  Moves objects to a position or by an offset. All GUIDs are checked before anything moves.
 local args = JSON.decode([==[{{args}}]==])
 local function v(t) return Vector(t[1], t[2], t[3]) end
 local plan = {}

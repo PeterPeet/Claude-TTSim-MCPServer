@@ -1,4 +1,4 @@
--- tts_mcp:inspect_object  Read-only. Full details of one object; snap point positions in world coordinates.
+-- ttsim_mcp:inspect_object  Read-only. Full details of one object; snap point positions in world coordinates.
 local args = JSON.decode([==[{{args}}]==])
 local function vec(v) return { v.x, v.y, v.z } end
 local o = getObjectFromGUID(args.guid)

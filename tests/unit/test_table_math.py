@@ -2,8 +2,8 @@
 
 import pytest
 
-from tts_mcp.comms import render_lua
-from tts_mcp.table import Box, center_distance, edge_distance, is_cocked, rounded
+from ttsim_mcp.comms import render_lua
+from ttsim_mcp.table import Box, center_distance, edge_distance, is_cocked, rounded
 
 
 def box(x: float, z: float, sx: float = 0.0, sz: float = 0.0, y: float = 0.0) -> Box:

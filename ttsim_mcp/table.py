@@ -1,7 +1,7 @@
 """3D controls (layer 2, REQ-OBJ, REQ-DICE): objects, positions, moves, measuring and dice.
 
 Generic: knows about objects and coordinates, never about a specific game.
-All positions and distances are in TTS world units; skills convert to game units.
+All positions and distances are in TTSim world units; skills convert to game units.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from tts_mcp.comms import TTSConnection, TTSTimeoutError, render_lua
+from ttsim_mcp.comms import TTSimConnection, TTSimTimeoutError, render_lua
 
 POLL_INTERVAL = 0.15
 MOVE_TIMEOUT = 10.0
@@ -64,7 +64,7 @@ def is_cocked(tilt: float, tolerance: float = COCKED_TILT_DEGREES) -> bool:
     return tilt > tolerance
 
 
-def _run(conn: TTSConnection, template: str, args: dict[str, Any] | None = None) -> Any:
+def _run(conn: TTSimConnection, template: str, args: dict[str, Any] | None = None) -> Any:
     return conn.execute_lua(render_lua(template, args))
 
 
@@ -87,12 +87,12 @@ def _poll(
         if elapsed >= min_time and done(state):
             return state
         if elapsed >= timeout:
-            raise TTSTimeoutError(f"Still not settled after {timeout:g} s: {describe_pending(state)}")
+            raise TTSimTimeoutError(f"Still not settled after {timeout:g} s: {describe_pending(state)}")
         time.sleep(poll_interval)
 
 
 def list_objects(
-    conn: TTSConnection,
+    conn: TTSimConnection,
     *,
     name: str | None = None,
     type: str | None = None,
@@ -105,13 +105,13 @@ def list_objects(
     return rounded(_run(conn, "list_objects.lua", _given(name=name, type=type, tag=tag, tint=tint)))
 
 
-def inspect_object(conn: TTSConnection, guid: str) -> dict[str, Any]:
+def inspect_object(conn: TTSimConnection, guid: str) -> dict[str, Any]:
     """Full details of one object, including bounds and snap points (world coordinates)."""
     return rounded(_run(conn, "inspect_object.lua", {"guid": guid}))
 
 
 def move_object(
-    conn: TTSConnection,
+    conn: TTSimConnection,
     guid: str,
     position: Point,
     rotation: Point | None = None,
@@ -125,7 +125,7 @@ def move_object(
 
 
 def move_objects(
-    conn: TTSConnection,
+    conn: TTSimConnection,
     moves: Sequence[dict[str, Any]] | None = None,
     guids: Sequence[str] | None = None,
     offset: Point | None = None,
@@ -160,12 +160,12 @@ def move_objects(
     return rounded({"objects": objects})
 
 
-def table_geometry(conn: TTSConnection) -> dict[str, Any]:
+def table_geometry(conn: TTSimConnection) -> dict[str, Any]:
     """Table type and bounding box, plus global snap points."""
     return rounded(_run(conn, "table_geometry.lua"))
 
 
-def measure(conn: TTSConnection, a: str | Point, b: str | Point) -> dict[str, Any]:
+def measure(conn: TTSimConnection, a: str | Point, b: str | Point) -> dict[str, Any]:
     """Horizontal distance between two objects (GUIDs) or points ([x, y, z]), in world units.
 
     `center`: between centres. `edge`: between the objects' bounding boxes (0 if they overlap).
@@ -193,7 +193,9 @@ def measure(conn: TTSConnection, a: str | Point, b: str | Point) -> dict[str, An
     )
 
 
-def highlight(conn: TTSConnection, guid: str, color: str = "Yellow", seconds: float = 3.0) -> dict[str, Any]:
+def highlight(
+    conn: TTSimConnection, guid: str, color: str = "Yellow", seconds: float = 3.0
+) -> dict[str, Any]:
     """Highlight an object for a few seconds, to point it out to the player."""
     _run(conn, "highlight.lua", {"guid": guid, "color": color, "seconds": seconds})
     return {"guid": guid, "color": color, "seconds": seconds}
@@ -212,14 +214,14 @@ def _dice_result(dice: list[dict[str, Any]], cocked_tilt: float) -> dict[str, An
 
 
 def roll_dice(
-    conn: TTSConnection,
+    conn: TTSimConnection,
     guids: Sequence[str],
     timeout: float = ROLL_TIMEOUT,
     poll_interval: float = POLL_INTERVAL,
     min_roll_time: float = MIN_ROLL_TIME,
     cocked_tilt: float = COCKED_TILT_DEGREES,
 ) -> dict[str, Any]:
-    """Roll dice with TTS's physics roll and return their values once all have come to rest."""
+    """Roll dice with TTSim's physics roll and return their values once all have come to rest."""
     if not guids:
         raise ValueError("roll_dice needs at least one die GUID.")
     _run(conn, "roll_dice.lua", {"guids": list(guids)})
@@ -235,7 +237,7 @@ def roll_dice(
 
 
 def read_dice(
-    conn: TTSConnection, guids: Sequence[str] | None = None, cocked_tilt: float = COCKED_TILT_DEGREES
+    conn: TTSimConnection, guids: Sequence[str] | None = None, cocked_tilt: float = COCKED_TILT_DEGREES
 ) -> dict[str, Any]:
     """Current values of the given dice, or of all dice on the table, without rolling them."""
     state = _run(conn, "dice_state.lua", _given(guids=list(guids) if guids else None))

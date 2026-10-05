@@ -1,4 +1,4 @@
--- tts_mcp:list_objects  Read-only. Filters (all optional): name (substring, case-insensitive), type, tag, tint (hex).
+-- ttsim_mcp:list_objects  Read-only. Filters (all optional): name (substring, case-insensitive), type, tag, tint (hex).
 local args = JSON.decode([==[{{args}}]==])
 local function vec(v) return { v.x, v.y, v.z } end
 local objects = {}
