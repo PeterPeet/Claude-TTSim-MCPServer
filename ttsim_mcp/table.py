@@ -6,13 +6,19 @@ All positions and distances are in TTSim world units; skills convert to game uni
 
 from __future__ import annotations
 
+import io
 import math
+import re
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
-from ttsim_mcp.comms import TTSimConnection, TTSimTimeoutError, render_lua
+from PIL import Image
+from pypdf import PdfReader
+
+from ttsim_mcp.comms import TTSimConnection, TTSimError, TTSimTimeoutError, render_lua
 
 POLL_INTERVAL = 0.15
 MOVE_TIMEOUT = 10.0
@@ -21,6 +27,24 @@ ROLL_TIMEOUT = 15.0
 MIN_ROLL_TIME = 0.5
 # A die tilted more than this from lying flat counts as cocked (45° = two faces equally up).
 COCKED_TILT_DEGREES = 10.0
+# Markers (REQ-OBJ-09): circle smoothness and default line style.
+CIRCLE_SEGMENTS = 64
+MARKER_THICKNESS = 0.06
+# Card images are scaled to at most this many pixels on the long side: text stays readable, results small.
+MAX_IMAGE_SIDE = 2000
+
+# Where TTSim keeps every image it has loaded: macOS first, then Windows (Documents/My Games).
+IMAGE_CACHE_DIRS = [
+    Path.home() / "Library/Tabletop Simulator/Mods/Images",
+    Path.home() / "Library/Tabletop Simulator/Mods/Images Raw",
+    Path.home() / "Documents/My Games/Tabletop Simulator/Mods/Images",
+    Path.home() / "Documents/My Games/Tabletop Simulator/Mods/Images Raw",
+]
+
+PDF_CACHE_DIRS = [
+    Path.home() / "Library/Tabletop Simulator/Mods/PDF",
+    Path.home() / "Documents/My Games/Tabletop Simulator/Mods/PDF",
+]
 
 Point = Sequence[float]
 Vec3 = tuple[float, float, float]
@@ -244,3 +268,146 @@ def read_dice(
     """Current values of the given dice/coins, or of all dice and coins on the table, without rolling them."""
     state = _run(conn, "dice_state.lua", _given(guids=list(guids) if guids else None))
     return _dice_result(state["dice"], cocked_tilt)
+
+
+class ImageNotCachedError(TTSimError):
+    """TTSim has not stored the image or PDF locally (it was never loaded on this machine)."""
+
+
+@dataclass(frozen=True)
+class CardFace:
+    """A card's face as JPEG, or a PDF object's text per page, plus where it came from (`info`: guid, type,
+    kind "image" or "pdf", url, and card_id/index/columns/rows for cards or the shown page for PDFs)."""
+
+    info: dict[str, Any]
+    jpeg: bytes | None = None
+    pages: list[str] | None = None
+
+
+def cached_image_path(url: str, cache_dirs: Sequence[Path]) -> Path:
+    """The file TTSim cached `url` in: the URL with only letters and digits left, any extension."""
+    stem = re.sub(r"[^A-Za-z0-9]", "", url.strip())
+    for directory in cache_dirs:
+        for path in sorted(Path(directory).glob(f"{stem}.*")):
+            return path
+    raise ImageNotCachedError(
+        f"{url.strip()} is not in TTSim's image/PDF cache; it may not have been loaded on this machine yet."
+    )
+
+
+def grid_cell(index: int, columns: int, rows: int) -> tuple[int, int]:
+    """(column, row) of the `index`-th cell of a face sheet, counted row by row from the top left."""
+    if not 0 <= index < columns * rows:
+        raise ValueError(f"Card index {index} is outside a {columns} x {rows} sheet.")
+    return index % columns, index // columns
+
+
+def crop_card(path: Path, index: int, columns: int, rows: int, max_side: int = MAX_IMAGE_SIDE) -> bytes:
+    """Cut the `index`-th cell out of the sheet image at `path`, scale it to at most `max_side` pixels on the
+    long side, and return it as JPEG."""
+    column, row = grid_cell(index, columns, rows)
+    with Image.open(path) as sheet:
+        width, height = sheet.width / columns, sheet.height / rows
+        left, top = round(column * width), round(row * height)
+        right, bottom = round((column + 1) * width), round((row + 1) * height)
+        card = sheet.convert("RGB").crop((left, top, right, bottom))
+    card.thumbnail((max_side, max_side))
+    out = io.BytesIO()
+    card.save(out, format="JPEG", quality=90)
+    return out.getvalue()
+
+
+_GLYPH_CODE = re.compile(r"/u(?:ni)?([0-9A-Fa-f]{4})(?:\.[a-z]+)?")
+_GLYPH_SMALL_CAP = re.compile(r"/([A-Za-z])\.sc")
+_GLYPH_LIGATURE = re.compile(r"/([A-Za-z](?:_[A-Za-z])+)")
+
+
+def clean_pdf_text(text: str) -> str:
+    """Replace glyph names that pypdf leaves in text from some fonts: `/u2022.j` or `/uni00A0` (code point),
+    `/e.sc` (small capital) and `/T_h` (ligature)."""
+    text = _GLYPH_CODE.sub(lambda m: chr(int(m.group(1), 16)), text)
+    text = _GLYPH_SMALL_CAP.sub(lambda m: m.group(1), text)
+    return _GLYPH_LIGATURE.sub(lambda m: m.group(1).replace("_", ""), text)
+
+
+def pdf_pages_text(path: Path) -> list[str]:
+    """The text of every page of the PDF at `path`."""
+    return [clean_pdf_text(page.extract_text() or "").strip() for page in PdfReader(path).pages]
+
+
+def card_face(conn: TTSimConnection, guid: str, cache_dirs: Sequence[Path] | None = None) -> CardFace:
+    """The face of a card (cut from its deck's face sheet) or of a custom tile/token as an image, or the text
+    of a custom PDF object, from TTSim's local cache. Nothing is downloaded."""
+    info = _run(conn, "card_face.lua", {"guid": guid})
+    if info.get("kind") == "pdf":
+        path = cached_image_path(info["url"], PDF_CACHE_DIRS if cache_dirs is None else cache_dirs)
+        return CardFace(info=info, pages=pdf_pages_text(path))
+    path = cached_image_path(info["url"], IMAGE_CACHE_DIRS if cache_dirs is None else cache_dirs)
+    return CardFace(info=info, jpeg=crop_card(path, info["index"], info["columns"], info["rows"]))
+
+
+Color = str | Sequence[float]
+
+
+def circle_points(center: Point, radius: float, segments: int = CIRCLE_SEGMENTS) -> list[list[float]]:
+    """Closed polyline approximating a horizontal circle around `center` ([x, y, z]) at its height."""
+    if radius <= 0:
+        raise ValueError("A circle needs a positive radius.")
+    x, y, z = center
+    return [
+        [
+            x + radius * math.cos(2 * math.pi * i / segments),
+            y,
+            z + radius * math.sin(2 * math.pi * i / segments),
+        ]
+        for i in range(segments + 1)
+    ]
+
+
+def marker_lines(
+    circles: Sequence[dict[str, Any]] | None = None,
+    lines: Sequence[dict[str, Any]] | None = None,
+    color: Color = "Yellow",
+    thickness: float = MARKER_THICKNESS,
+) -> list[dict[str, Any]]:
+    """Vector lines for circles ({center, radius, color?}) and polylines ({points, color?})."""
+    out = []
+    for c in circles or []:
+        if len(c["center"]) != 3:
+            raise ValueError("A circle centre is [x, y, z].")
+        points = circle_points(c["center"], c["radius"])
+        out.append({"points": points, "color": c.get("color", color), "thickness": thickness})
+    for line in lines or []:
+        points = [list(p) for p in line["points"]]
+        if len(points) < 2 or any(len(p) != 3 for p in points):
+            raise ValueError("A line needs at least two points, each [x, y, z].")
+        out.append({"points": points, "color": line.get("color", color), "thickness": thickness})
+    if not out:
+        raise ValueError("Nothing to draw: give circles and/or lines.")
+    return out
+
+
+def draw_markers(
+    conn: TTSimConnection,
+    label: str,
+    circles: Sequence[dict[str, Any]] | None = None,
+    lines: Sequence[dict[str, Any]] | None = None,
+    color: Color = "Yellow",
+    thickness: float = MARKER_THICKNESS,
+) -> dict[str, Any]:
+    """Draw circles and polylines on the table under `label`, keeping all existing vector lines."""
+    if not label:
+        raise ValueError("Markers need a label, so they can be listed and cleared.")
+    vector_lines = rounded(marker_lines(circles, lines, color, thickness))
+    return _run(conn, "draw_markers.lua", {"label": label, "lines": vector_lines})
+
+
+def list_markers(conn: TTSimConnection) -> dict[str, Any]:
+    """Labels drawn with draw_markers, with how many of their lines are still on the table."""
+    result = _run(conn, "list_markers.lua")
+    return {"markers": list(result["markers"] or []), "vector_lines": result["vector_lines"]}
+
+
+def clear_markers(conn: TTSimConnection, label: str | None = None) -> dict[str, Any]:
+    """Remove the markers drawn under `label` (all labels if None); other vector lines stay."""
+    return _run(conn, "clear_markers.lua", _given(label=label))

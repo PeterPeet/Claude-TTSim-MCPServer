@@ -331,3 +331,118 @@ def test_req_dice_03_total_ignores_coins_next_to_dice(fake_and_conn: Pair) -> No
     result = table.read_dice(conn)
     assert result["total"] == 4
     assert [d["value"] for d in result["dice"]] == [4, "Heads"]
+
+
+# REQ-OBJ-08 Card face image
+
+
+def face_info(url: str, index: int = 1) -> Value:
+    return Value(
+        {
+            "guid": "b80379",
+            "name": "",
+            "type": "Card",
+            "card_id": 79100 + index,
+            "url": url,
+            "index": index,
+            "columns": 4,
+            "rows": 3,
+        }
+    )
+
+
+def test_req_obj_08_card_face_cuts_card_from_cached_sheet(fake_and_conn: Pair, tmp_path) -> None:
+    from PIL import Image
+
+    fake, conn = fake_and_conn
+    url = "https://example.test/ugc/1/ABC/"
+    Image.new("RGB", (400, 300), (255, 0, 0)).save(tmp_path / "httpsexampletestugc1ABC.png")
+    fake.respond("ttsim_mcp:card_face", face_info(url))
+    face = table.card_face(conn, "b80379", cache_dirs=[tmp_path])
+    assert sent_args(fake, "ttsim_mcp:card_face") == {"guid": "b80379"}
+    assert face.info == {
+        "guid": "b80379",
+        "name": "",
+        "type": "Card",
+        "card_id": 79101,
+        "url": url,
+        "index": 1,
+        "columns": 4,
+        "rows": 3,
+    }
+    assert face.jpeg.startswith(b"\xff\xd8")  # JPEG
+    import io
+
+    assert Image.open(io.BytesIO(face.jpeg)).size == (100, 100)
+
+
+def test_req_obj_08_card_face_not_cached(fake_and_conn: Pair, tmp_path) -> None:
+    fake, conn = fake_and_conn
+    fake.respond("ttsim_mcp:card_face", face_info("https://example.test/missing/"))
+    with pytest.raises(table.ImageNotCachedError, match="example.test/missing"):
+        table.card_face(conn, "b80379", cache_dirs=[tmp_path])
+
+
+def test_req_obj_08_card_face_object_without_image(fake_and_conn: Pair, tmp_path) -> None:
+    fake, conn = fake_and_conn
+    fake.respond("ttsim_mcp:card_face", LuaError("Object 'abc123' (Dice) has no custom face image"))
+    with pytest.raises(TTSimLuaError, match="no custom face image"):
+        table.card_face(conn, "abc123", cache_dirs=[tmp_path])
+
+
+def test_req_obj_08_card_face_of_pdf_returns_page_texts(fake_and_conn: Pair, tmp_path) -> None:
+    from tests.unit.test_card_face import make_pdf
+
+    fake, conn = fake_and_conn
+    url = "https://example.test/ugc/2/PDF/"
+    make_pdf(tmp_path / "httpsexampletestugc2PDF.pdf", ["PAGE ONE", "PAGE TWO"])
+    fake.respond(
+        "ttsim_mcp:card_face",
+        Value({"guid": "18abfe", "name": "", "type": "Tile", "kind": "pdf", "url": url, "page": 0}),
+    )
+    face = table.card_face(conn, "18abfe", cache_dirs=[tmp_path])
+    assert face.jpeg is None
+    assert face.pages == ["PAGE ONE", "PAGE TWO"]
+    assert face.info["page"] == 0
+
+
+# REQ-OBJ-09 Draw markers
+
+
+def test_req_obj_09_draw_markers_sends_label_and_lines(fake_and_conn: Pair) -> None:
+    fake, conn = fake_and_conn
+    fake.respond("ttsim_mcp:draw_markers", Value({"label": "objectives", "added": 1, "total": 3}))
+    result = table.draw_markers(conn, "objectives", circles=[{"center": [0, 1, 0], "radius": 3}])
+    assert result == {"label": "objectives", "added": 1, "total": 3}
+    args = sent_args(fake, "ttsim_mcp:draw_markers")
+    assert args["label"] == "objectives"
+    assert len(args["lines"]) == 1 and len(args["lines"][0]["points"]) == 65
+
+
+def test_req_obj_09_draw_markers_needs_label(fake_and_conn: Pair) -> None:
+    _, conn = fake_and_conn
+    with pytest.raises(ValueError, match="label"):
+        table.draw_markers(conn, "", circles=[{"center": [0, 1, 0], "radius": 3}])
+
+
+def test_req_obj_09_list_markers(fake_and_conn: Pair) -> None:
+    fake, conn = fake_and_conn
+    listing = {"markers": [{"label": "objectives", "lines": 5, "present": 5}], "vector_lines": 7}
+    fake.respond("ttsim_mcp:list_markers", Value(listing))
+    assert table.list_markers(conn) == listing
+
+
+def test_req_obj_09_list_markers_empty_lua_table(fake_and_conn: Pair) -> None:
+    # TTSim's JSON.encode turns an empty Lua table into [] (or {}): both mean "no markers".
+    fake, conn = fake_and_conn
+    fake.respond("ttsim_mcp:list_markers", Value({"markers": {}, "vector_lines": 0}))
+    assert table.list_markers(conn) == {"markers": [], "vector_lines": 0}
+
+
+def test_req_obj_09_clear_markers_by_label_or_all(fake_and_conn: Pair) -> None:
+    fake, conn = fake_and_conn
+    fake.respond("ttsim_mcp:clear_markers", Value({"removed": 5, "total": 2}))
+    assert table.clear_markers(conn, "objectives") == {"removed": 5, "total": 2}
+    assert sent_args(fake, "ttsim_mcp:clear_markers") == {"label": "objectives"}
+    table.clear_markers(conn)
+    assert sent_args(fake, "ttsim_mcp:clear_markers") == {}

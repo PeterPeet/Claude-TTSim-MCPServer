@@ -121,3 +121,41 @@ def test_req_dice_03_flip_a_coin(conn: TTSimConnection) -> None:
     assert face in faces
     assert table.read_dice(conn, [coin["guid"]])["dice"][0]["value"] == face
     assert any(d["guid"] == coin["guid"] for d in table.read_dice(conn)["dice"])
+
+
+def test_req_obj_08_card_face_of_a_card_on_the_table(conn: TTSimConnection) -> None:
+    import io
+
+    from PIL import Image
+
+    card = first(conn, type="Card")
+    face = table.card_face(conn, card["guid"])
+    img = Image.open(io.BytesIO(face.jpeg))
+    # A single card from a sheet of several, not the whole sheet.
+    assert face.info["columns"] * face.info["rows"] >= 1
+    assert img.width < 2000 and img.height < 2000
+    assert img.height > img.width  # cards are portrait in every deck seen so far
+
+
+def test_req_obj_09_markers_keep_player_drawings(conn: TTSimConnection) -> None:
+    # A stand-in for a line the player drew with TTSim's drawing tool.
+    player_line = "{points = {{40, 1, 40}, {41, 1, 41}}, color = {1, 0, 0}, thickness = 0.1}"
+    before = conn.execute_lua("return #(Global.getVectorLines() or {})")
+    conn.execute_lua(
+        f"local l = Global.getVectorLines() or {{}} table.insert(l, {player_line}) Global.setVectorLines(l)"
+    )
+    try:
+        table.draw_markers(conn, "itest", circles=[{"center": [40, 1, 40], "radius": 3}], color="Yellow")
+        listing = table.list_markers(conn)
+        assert {"label": "itest", "lines": 1, "present": 1} in listing["markers"]
+        assert listing["vector_lines"] == before + 2
+        table.clear_markers(conn, "itest")
+        assert conn.execute_lua("return #(Global.getVectorLines() or {})") == before + 1
+    finally:
+        table.clear_markers(conn, "itest")
+        lines = conn.execute_lua(
+            "local keep = {} for _, l in ipairs(Global.getVectorLines() or {}) do "
+            "if not (l.points[1].x == 40 and l.points[1].z == 40) then table.insert(keep, l) end end "
+            "Global.setVectorLines(keep) return #keep"
+        )
+        assert lines == before
