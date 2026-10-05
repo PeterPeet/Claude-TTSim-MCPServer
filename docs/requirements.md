@@ -72,35 +72,35 @@ The MCP layer contains no logic: only argument parsing and calls into `tts_mcp.c
 
 All positions and distances are in TTS world units; any conversion to game units (inches etc.) is done by skills.
 
-**REQ-OBJ-01 List objects** — `agreed`
+**REQ-OBJ-01 List objects** — `done`
 List objects on the table with GUID, name, description, type, tags, tint, position and rotation.
 Filters by name, tag or type are optional.
 
-**REQ-OBJ-02 Inspect object** — `agreed`
+**REQ-OBJ-02 Inspect object** — `done`
 Return the full details of one object, including bounds and any snap points it has.
 
-**REQ-OBJ-03 Move object** — `agreed`
+**REQ-OBJ-03 Move object** — `done`
 Move an object to a target position (optional rotation), smoothly by default so Peter sees it happen.
 - Acceptance: after the move settles, the object's position is within a small tolerance of the target.
 
-**REQ-OBJ-04 Move many** — `agreed`
+**REQ-OBJ-04 Move many** — `done`
 Move several objects in one call (e.g. a stack of checkers or a unit), keeping or setting their positions.
 
-**REQ-OBJ-05 Table geometry** — `agreed`
+**REQ-OBJ-05 Table geometry** — `done`
 Report the table surface bounds and global snap points, so a skill can map game locations to coordinates.
 
-**REQ-OBJ-06 Measure** — `agreed`
+**REQ-OBJ-06 Measure** — `done`
 Distance between two objects or points in world units (centre to centre; edge to edge where bounds allow).
 
-**REQ-OBJ-07 Highlight** — `agreed`
+**REQ-OBJ-07 Highlight** — `done`
 Highlight an object temporarily, so Claude can point at a piece for Peter.
 
-**REQ-DICE-01 Roll physical dice** — `agreed`
+**REQ-DICE-01 Roll physical dice** — `done`
 Roll one or more existing dice objects with TTS's physics roll (`roll()`: the die is lifted and spun visibly, as when
 a player presses R), and return the values once all dice have stopped. Flag dice that came to rest tilted (cocked).
 - Acceptance: rolling two d6 visibly rolls them in TTS and returns two values in 1..6 that match what TTS shows.
 
-**REQ-DICE-02 Read dice** — `agreed`
+**REQ-DICE-02 Read dice** — `done`
 Read the current face value of dice without rolling them (for dice Peter rolled).
 
 ## Phase 4 — Backgammon (REQ-BG)
@@ -206,3 +206,5 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 - 2026-10-05 — Phase 3 implemented (REQ-OBJ-01..07, REQ-DICE-01..02): unit and contract tests pass; every Lua
   template was run against the real game via `run_lua`. Status stays `agreed` until `pytest -m tts` has run
   (needs port 39998 free, i.e. outside a session with the `tts` server) and Peter has confirmed the roll is visible.
+- 2026-10-05 — Phase 3 done: `pytest -m tts` 18/18 passed against the real game; every tool used live in a Claude Code
+  session; 400-roll fairness test for REQ-DICE-01 (Peter saw the dice lift and spin).
