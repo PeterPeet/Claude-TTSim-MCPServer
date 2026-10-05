@@ -163,6 +163,12 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 - **Q8** How do dice report a roll? — **Resolved 2026-10-05 (spike):** right after `roll()` the die reports
   `resting = false`; about 2 s later `resting = true` and `getValue()` gives the top face.
   So a roll is: `roll()` every die, then poll until all are resting.
+  **Fairness test 2026-10-05:** 100 rolls of all 4 dice with `roll()` (400 results), measured every physics frame.
+  Faces 1–6: 60/71/69/74/55/71, chi-square 4.16 with 5 degrees of freedom (critical value 11.07 at 5 %), so
+  consistent with fair dice. Dice rise 4.7 units on average (2.3 min, 7.5 max) and show 4.1 different faces in
+  flight; only 1 of 400 showed a single face. 1 of 400 landed cocked, none timed out. The dice land near where
+  they started, which is why it looks like a roll in place, but they drift: after 100 rolls they were up to
+  5 units from their start. Skills should put dice back in their home area before rolling.
 - **Q9** Tool output shape. — **Found 2026-10-05:** a tool that returns a bare list is shown to Claude as one
   block per item. Tools return objects (e.g. `{"objects": [...]}`) instead.
 - **Q5** Which colour does Claude play, and who rolls Claude's dice (Claude via tool, or Peter)?
