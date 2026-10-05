@@ -51,7 +51,7 @@ so all of REQ-COM can be tested without the game.
 
 ## Phase 2 — MCP server, raw access (REQ-MCP)
 
-**REQ-MCP-01 Server** — `agreed`
+**REQ-MCP-01 Server** — `done`
 `python -m tts_mcp` starts an MCP server over stdio that Claude Code can register.
 - Acceptance: registered in Claude Code, its tools are listed, and `run_lua("return 1+1")` returns `2`
   against the real game.
@@ -170,3 +170,4 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 - 2026-10-05 — Phase 1 done: REQ-COM-01..06 pass (unit, contract, and integration against real TTS).
 - 2026-10-05 — Phase 2: REQ-MCP-02..04 done. REQ-MCP-01 passes over stdio against real TTS; the
   Claude Code registration (`.mcp.json`) still needs Peter's check in a new session. Q6 resolved.
+- 2026-10-05 — REQ-MCP-01 done: tools listed and run_lua returns 2 in a Claude Code session. Phase 2 complete.
