@@ -32,8 +32,11 @@ def test_req_com_03_runtime_error(conn: TTSConnection) -> None:
 
 
 def test_req_com_03_compile_error(conn: TTSConnection) -> None:
-    with pytest.raises(TTSLuaError, match="unexpected symbol"):
-        conn.execute_lua("return 1 +")
+    # Syntax errors bypass the wrapper, so TTS also shows them in red in the game chat.
+    # The string makes that chat message explain itself.
+    label = "tts-mcp integration test: deliberate syntax error, please ignore"
+    with pytest.raises(TTSLuaError, match=label):
+        conn.execute_lua(f'return 1 "{label}"')
 
 
 def test_req_com_03_unserialisable_result(conn: TTSConnection) -> None:
