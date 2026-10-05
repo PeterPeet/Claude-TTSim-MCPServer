@@ -47,6 +47,14 @@ def load_lua(name: str) -> str:
     return resources.files("tts_mcp").joinpath(f"lua/{name}").read_text(encoding="utf-8")
 
 
+def render_lua(name: str, args: dict[str, Any] | None = None) -> str:
+    """Load a Lua template and embed `args` as JSON, decoded in Lua with `JSON.decode([==[{{args}}]==])`."""
+    encoded = json.dumps(args or {})
+    if "]==]" in encoded:
+        raise ValueError("Lua template arguments must not contain ']==]'")
+    return load_lua(name).replace("{{args}}", encoded)
+
+
 _WRAPPER = load_lua("execute_wrapper.lua")
 
 

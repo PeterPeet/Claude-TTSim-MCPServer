@@ -6,7 +6,8 @@ Mimics the External Editor API as observed in the 2026-10-05 spike (see docs/req
   sending one pretty-printed JSON object and closing.
 
 Responses are scripted per Lua fragment: the first registered fragment contained in the received
-script decides the response. Unmatched scripts get no reply.
+script decides the response. Several responses for one fragment are used in order, the last one
+repeating (e.g. "still moving", then "resting"). Unmatched scripts get no reply.
 """
 
 from __future__ import annotations
@@ -57,7 +58,7 @@ class FakeTTS:
     def __init__(self, reply_port: int) -> None:
         self.reply_port = reply_port
         self.received: list[dict[str, Any]] = []
-        self._responses: list[tuple[str, Response]] = []
+        self._responses: list[tuple[str, list[Response]]] = []
         self._stop = threading.Event()
         self._server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -76,8 +77,17 @@ class FakeTTS:
         self._thread.join(timeout=2)
         self._server.close()
 
-    def respond(self, fragment: str, response: Response) -> None:
-        self._responses.append((fragment, response))
+    def respond(self, fragment: str, *responses: Response) -> None:
+        self._responses.append((fragment, list(responses)))
+
+    def scripts_containing(self, fragment: str) -> list[str]:
+        return [m["script"] for m in self.received if fragment in m.get("script", "")]
+
+    def _next_response(self, script: str) -> Response:
+        for fragment, responses in self._responses:
+            if fragment in script:
+                return responses.pop(0) if len(responses) > 1 else responses[0]
+        return NoReply()
 
     def push_event(self, message: dict[str, Any]) -> None:
         """Send an unsolicited message, as TTS does for print(), errors, game loaded, etc."""
@@ -99,8 +109,7 @@ class FakeTTS:
                 self._answer(message)
 
     def _answer(self, message: dict[str, Any]) -> None:
-        script = message.get("script", "")
-        response: Response = next((r for f, r in self._responses if f in script), NoReply())
+        response = self._next_response(message.get("script", ""))
         return_id = message.get("returnID")
         match response:
             case Value(value):

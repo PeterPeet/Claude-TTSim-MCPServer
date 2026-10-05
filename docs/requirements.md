@@ -96,8 +96,9 @@ Distance between two objects or points in world units (centre to centre; edge to
 Highlight an object temporarily, so Claude can point at a piece for Peter.
 
 **REQ-DICE-01 Roll physical dice** — `agreed`
-Roll one or more existing dice objects on the table and return their values once all have stopped.
-- Acceptance: rolling two d6 returns two values in 1..6 that match what TTS shows.
+Roll one or more existing dice objects with TTS's physics roll (`roll()`: the die is lifted and spun visibly, as when
+a player presses R), and return the values once all dice have stopped. Flag dice that came to rest tilted (cocked).
+- Acceptance: rolling two d6 visibly rolls them in TTS and returns two values in 1..6 that match what TTS shows.
 
 **REQ-DICE-02 Read dice** — `agreed`
 Read the current face value of dice without rolling them (for dice Peter rolled).
@@ -151,6 +152,19 @@ The skill and MCP server can be installed into Claude Code from this repo with d
   snap points per point, scripted dice or plain dice?
   — **Partly answered 2026-10-05 (spike):** 35 objects: 1 `Board`, 4 `Dice`, 30 `Backgammon Piece`.
   All have empty names. Colours, positions and snap points are still to be checked.
+  — **Mostly answered 2026-10-05 (second spike):** checkers are told apart only by tint: 15 × `bbbbbb` (light)
+  and 15 × `4e2c00` (brown). Dice: 2 × white tint `ffffff`, 2 × blue tint `264d71`. The board is locked,
+  centred at the origin, 15.22 × 22.91 units (x × z), and has 120 snap points (24 points × 5 checker slots,
+  1 unit apart along x). The board has no Lua script; the table is `Table_RPG`. How points are numbered
+  is left to the skill (phase 4).
+- **Q7** Are object GUIDs stable? — **Resolved 2026-10-05 (spike): no.** After the game was loaded again,
+  every object had a new GUID (board `0905ba` → `735307`). Skills must find objects by type, tint, tags
+  or position and never store GUIDs between sessions.
+- **Q8** How do dice report a roll? — **Resolved 2026-10-05 (spike):** right after `roll()` the die reports
+  `resting = false`; about 2 s later `resting = true` and `getValue()` gives the top face.
+  So a roll is: `roll()` every die, then poll until all are resting.
+- **Q9** Tool output shape. — **Found 2026-10-05:** a tool that returns a bare list is shown to Claude as one
+  block per item. Tools return objects (e.g. `{"objects": [...]}`) instead.
 - **Q5** Which colour does Claude play, and who rolls Claude's dice (Claude via tool, or Peter)?
   — **Resolved 2026-10-05 (Peter):** Claude plays the colour the game assigns it; if none is assigned, the
   light (white) side. Decided by Claude, since Peter left it open: Claude rolls its own dice with the dice tool
@@ -171,3 +185,11 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 - 2026-10-05 — Phase 2: REQ-MCP-02..04 done. REQ-MCP-01 passes over stdio against real TTS; the
   Claude Code registration (`.mcp.json`) still needs Peter's check in a new session. Q6 resolved.
 - 2026-10-05 — REQ-MCP-01 done: tools listed and run_lua returns 2 in a Claude Code session. Phase 2 complete.
+- 2026-10-05 — Spike results Q4 (mostly), Q7–Q9 recorded.
+- 2026-10-05 — REQ-DICE-01 changed at Peter's request: dice are thrown physically (pick up, throw with
+  velocity and spin) instead of using TTS's `roll()`. Adds the target area and the cocked-die flag.
+- 2026-10-05 — REQ-DICE-01 changed back at Peter's request: the scripted throw was not visible enough, so dice
+  use TTS's `roll()` again. Target area dropped; cocked-die flag kept.
+- 2026-10-05 — Phase 3 implemented (REQ-OBJ-01..07, REQ-DICE-01..02): unit and contract tests pass; every Lua
+  template was run against the real game via `run_lua`. Status stays `agreed` until `pytest -m tts` has run
+  (needs port 39998 free, i.e. outside a session with the `tts` server) and Peter has confirmed the roll is visible.
