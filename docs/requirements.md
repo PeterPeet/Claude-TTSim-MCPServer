@@ -320,3 +320,6 @@ lines, never replacing the player's own drawings, and can be listed so a skill c
   objects at Peter's request). Requirements of the game skill that needs it are kept privately.
 - 2026-10-05 — REQ-OBJ-09 drafted (draw markers), proposed while marking objectives on a battlefield.
 - 2026-10-05 — REQ-OBJ-09 marked `agreed` by Peter.
+- 2026-10-05 — REQ-OBJ-09 implemented: draw_markers, list_markers, clear_markers. Unit and contract tests pass; the Lua
+  templates were run against the real game via run_lua (a stand-in player line survived drawing and clearing; the
+  label registry persists between calls until the game is reloaded). Integration test pending (port 39998 in use).

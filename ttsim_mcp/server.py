@@ -171,6 +171,34 @@ def create_server(conn: TTSimConnection) -> MCPServer:
             return {**face.info, "pages": face.pages}
         return [Image(data=face.jpeg, format="jpeg"), face.info]
 
+    @server.tool()
+    async def draw_markers(
+        label: str,
+        circles: list[dict[str, Any]] | None = None,
+        lines: list[dict[str, Any]] | None = None,
+        color: str | list[float] = "Yellow",
+        thickness: float = table.MARKER_THICKNESS,
+    ) -> Any:
+        """Draw temporary markers on the table (TTSim vector lines) to show areas, ranges or moves:
+        `circles` [{"center": [x, y, z], "radius", "color"?}] (horizontal, at the centre's height) and
+        `lines` [{"points": [[x, y, z], ...], "color"?}]. color is a TTSim colour name or [r, g, b] (0-1).
+        The player's own drawings stay. Markers are grouped under `label` for list_markers/clear_markers.
+        """
+        return await _call(partial(table.draw_markers, conn, label, circles, lines, color, thickness))
+
+    @server.tool()
+    async def list_markers() -> Any:
+        """Labels drawn with draw_markers and how many of their lines are still on the table (`present`),
+        plus the total number of vector lines. Labels are remembered until the game is reloaded.
+        """
+        return await _call(table.list_markers, conn)
+
+    @server.tool()
+    async def clear_markers(label: str | None = None) -> Any:
+        """Remove the markers drawn under `label`, or all markers drawn with draw_markers if no label is
+        given. Lines the player drew stay."""
+        return await _call(table.clear_markers, conn, label)
+
     return server
 
 

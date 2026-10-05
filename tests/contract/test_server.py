@@ -125,6 +125,9 @@ TABLE_TOOLS = {
     "roll_dice",
     "read_dice",
     "card_face",
+    "draw_markers",
+    "list_markers",
+    "clear_markers",
 }
 
 
@@ -219,3 +222,13 @@ async def test_req_obj_08_card_face_tool_returns_pdf_text(fake_and_conn: Pair, t
         result = await client.call_tool("card_face", {"guid": "p1"})
     assert not result.is_error
     assert payload(result)["pages"] == ["PAGE ONE"]
+
+
+async def test_req_obj_09_draw_markers_tool(fake_and_conn: Pair) -> None:
+    fake, conn = fake_and_conn
+    fake.respond("ttsim_mcp:draw_markers", Value({"label": "zone", "added": 1, "total": 1}))
+    async with Client(create_server(conn)) as client:
+        result = await client.call_tool(
+            "draw_markers", {"label": "zone", "lines": [{"points": [[0, 1, 0], [3, 1, 0]]}], "color": "Red"}
+        )
+    assert payload(result) == {"label": "zone", "added": 1, "total": 1}

@@ -404,3 +404,45 @@ def test_req_obj_08_card_face_of_pdf_returns_page_texts(fake_and_conn: Pair, tmp
     assert face.jpeg is None
     assert face.pages == ["PAGE ONE", "PAGE TWO"]
     assert face.info["page"] == 0
+
+
+# REQ-OBJ-09 Draw markers
+
+
+def test_req_obj_09_draw_markers_sends_label_and_lines(fake_and_conn: Pair) -> None:
+    fake, conn = fake_and_conn
+    fake.respond("ttsim_mcp:draw_markers", Value({"label": "objectives", "added": 1, "total": 3}))
+    result = table.draw_markers(conn, "objectives", circles=[{"center": [0, 1, 0], "radius": 3}])
+    assert result == {"label": "objectives", "added": 1, "total": 3}
+    args = sent_args(fake, "ttsim_mcp:draw_markers")
+    assert args["label"] == "objectives"
+    assert len(args["lines"]) == 1 and len(args["lines"][0]["points"]) == 65
+
+
+def test_req_obj_09_draw_markers_needs_label(fake_and_conn: Pair) -> None:
+    _, conn = fake_and_conn
+    with pytest.raises(ValueError, match="label"):
+        table.draw_markers(conn, "", circles=[{"center": [0, 1, 0], "radius": 3}])
+
+
+def test_req_obj_09_list_markers(fake_and_conn: Pair) -> None:
+    fake, conn = fake_and_conn
+    listing = {"markers": [{"label": "objectives", "lines": 5, "present": 5}], "vector_lines": 7}
+    fake.respond("ttsim_mcp:list_markers", Value(listing))
+    assert table.list_markers(conn) == listing
+
+
+def test_req_obj_09_list_markers_empty_lua_table(fake_and_conn: Pair) -> None:
+    # TTSim's JSON.encode turns an empty Lua table into [] (or {}): both mean "no markers".
+    fake, conn = fake_and_conn
+    fake.respond("ttsim_mcp:list_markers", Value({"markers": {}, "vector_lines": 0}))
+    assert table.list_markers(conn) == {"markers": [], "vector_lines": 0}
+
+
+def test_req_obj_09_clear_markers_by_label_or_all(fake_and_conn: Pair) -> None:
+    fake, conn = fake_and_conn
+    fake.respond("ttsim_mcp:clear_markers", Value({"removed": 5, "total": 2}))
+    assert table.clear_markers(conn, "objectives") == {"removed": 5, "total": 2}
+    assert sent_args(fake, "ttsim_mcp:clear_markers") == {"label": "objectives"}
+    table.clear_markers(conn)
+    assert sent_args(fake, "ttsim_mcp:clear_markers") == {}

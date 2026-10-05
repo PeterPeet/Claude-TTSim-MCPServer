@@ -27,6 +27,9 @@ ROLL_TIMEOUT = 15.0
 MIN_ROLL_TIME = 0.5
 # A die tilted more than this from lying flat counts as cocked (45° = two faces equally up).
 COCKED_TILT_DEGREES = 10.0
+# Markers (REQ-OBJ-09): circle smoothness and default line style.
+CIRCLE_SEGMENTS = 64
+MARKER_THICKNESS = 0.06
 # Card images are scaled to at most this many pixels on the long side: text stays readable, results small.
 MAX_IMAGE_SIDE = 2000
 
@@ -341,3 +344,70 @@ def card_face(conn: TTSimConnection, guid: str, cache_dirs: Sequence[Path] | Non
         return CardFace(info=info, pages=pdf_pages_text(path))
     path = cached_image_path(info["url"], IMAGE_CACHE_DIRS if cache_dirs is None else cache_dirs)
     return CardFace(info=info, jpeg=crop_card(path, info["index"], info["columns"], info["rows"]))
+
+
+Color = str | Sequence[float]
+
+
+def circle_points(center: Point, radius: float, segments: int = CIRCLE_SEGMENTS) -> list[list[float]]:
+    """Closed polyline approximating a horizontal circle around `center` ([x, y, z]) at its height."""
+    if radius <= 0:
+        raise ValueError("A circle needs a positive radius.")
+    x, y, z = center
+    return [
+        [
+            x + radius * math.cos(2 * math.pi * i / segments),
+            y,
+            z + radius * math.sin(2 * math.pi * i / segments),
+        ]
+        for i in range(segments + 1)
+    ]
+
+
+def marker_lines(
+    circles: Sequence[dict[str, Any]] | None = None,
+    lines: Sequence[dict[str, Any]] | None = None,
+    color: Color = "Yellow",
+    thickness: float = MARKER_THICKNESS,
+) -> list[dict[str, Any]]:
+    """Vector lines for circles ({center, radius, color?}) and polylines ({points, color?})."""
+    out = []
+    for c in circles or []:
+        if len(c["center"]) != 3:
+            raise ValueError("A circle centre is [x, y, z].")
+        points = circle_points(c["center"], c["radius"])
+        out.append({"points": points, "color": c.get("color", color), "thickness": thickness})
+    for line in lines or []:
+        points = [list(p) for p in line["points"]]
+        if len(points) < 2 or any(len(p) != 3 for p in points):
+            raise ValueError("A line needs at least two points, each [x, y, z].")
+        out.append({"points": points, "color": line.get("color", color), "thickness": thickness})
+    if not out:
+        raise ValueError("Nothing to draw: give circles and/or lines.")
+    return out
+
+
+def draw_markers(
+    conn: TTSimConnection,
+    label: str,
+    circles: Sequence[dict[str, Any]] | None = None,
+    lines: Sequence[dict[str, Any]] | None = None,
+    color: Color = "Yellow",
+    thickness: float = MARKER_THICKNESS,
+) -> dict[str, Any]:
+    """Draw circles and polylines on the table under `label`, keeping all existing vector lines."""
+    if not label:
+        raise ValueError("Markers need a label, so they can be listed and cleared.")
+    vector_lines = rounded(marker_lines(circles, lines, color, thickness))
+    return _run(conn, "draw_markers.lua", {"label": label, "lines": vector_lines})
+
+
+def list_markers(conn: TTSimConnection) -> dict[str, Any]:
+    """Labels drawn with draw_markers, with how many of their lines are still on the table."""
+    result = _run(conn, "list_markers.lua")
+    return {"markers": list(result["markers"] or []), "vector_lines": result["vector_lines"]}
+
+
+def clear_markers(conn: TTSimConnection, label: str | None = None) -> dict[str, Any]:
+    """Remove the markers drawn under `label` (all labels if None); other vector lines stay."""
+    return _run(conn, "clear_markers.lua", _given(label=label))
