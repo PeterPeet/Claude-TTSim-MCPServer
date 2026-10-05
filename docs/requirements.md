@@ -122,7 +122,7 @@ in TTSim onto the correct points, stacked neatly.
 Claude waits for Peter to say he has moved, re-reads the position, and points out if the move looks illegal
 (Peter decides).
 
-**REQ-BG-05 Full game** — `agreed`
+**REQ-BG-05 Full game** — `done`
 Claude and Peter play a complete game, including hitting, entering from the bar and bearing off.
 Doubling cube is optional.
 
@@ -140,7 +140,7 @@ randomize (which runs the coin's script, if it has one) and its result is report
 Generic, in layer 2; no game knowledge.
 - Acceptance: flipping the mod's coin visibly throws it and returns "Heads" or "Tails" matching what TTSim shows.
 
-**REQ-NMM-01 Skill** — `agreed`
+**REQ-NMM-01 Skill** — `done`
 `skills/ttsim-nine-mens-morris/SKILL.md` explains the table (board, racks, tokens, coin, reset button), the
 standard notation (a1–g7, row 1 on Peter's side, column a on his left), the rules (placing, moving, flying with three,
 mills, removing, winning) and the turn flow with Peter.
@@ -150,23 +150,23 @@ Claude can read the position from the table: which of the 24 points hold red or 
 player still has in hand (on the rack) and how many were removed.
 - Acceptance: on a freshly reset board Claude reports 24 empty points and 9 tokens in hand per player.
 
-**REQ-NMM-03 Coin toss** — `agreed`
+**REQ-NMM-03 Coin toss** — `done`
 Who starts is decided by a coin flip: Peter calls heads or tails, Claude flips the coin (REQ-DICE-03) and reads it.
 
-**REQ-NMM-04 Claude's turn** — `agreed`
+**REQ-NMM-04 Claude's turn** — `done`
 Claude places a token from its rack onto a free point (placing phase), or moves one to an adjacent free point
 (moving phase), or to any free point when it has three left (flying). On closing a mill it removes one of Peter's
 tokens following the rules and puts it beside the board. Every action is stated in notation (e.g. `d6`, `d6-d5`,
 `d6-d5, removes b4`).
 
-**REQ-NMM-05 Peter's turn** — `agreed`
+**REQ-NMM-05 Peter's turn** — `done`
 Claude waits until Peter says he has moved, reads the position, works out his move (and any removal), and points out
 if it looks illegal (Peter decides).
 
-**REQ-NMM-06 Reset** — `agreed`
+**REQ-NMM-06 Reset** — `done`
 A new game starts by calling the mod's own reset function (`resetPieces` on the reset button), with Peter's consent.
 
-**REQ-NMM-07 Full game** — `agreed`
+**REQ-NMM-07 Full game** — `done`
 Claude and Peter play a complete game to a win (opponent reduced to two tokens, or unable to move).
 
 ---
@@ -283,3 +283,14 @@ Claude and Peter play a complete game to a win (opponent reduced to two tokens, 
   mill); mill/removal and flying still to be shown in play.
 - 2026-10-05 — REQ-DICE-03 done: `pytest -m ttsim` with Nine Men's Morris loaded, 18 passed (incl. the coin flip and
   the four Nine Men's Morris helper tests), 9 skipped (need Backgammon or dice on the table).
+- 2026-10-05 — Full games marked played at Peter's request: REQ-BG-05 done (complete Backgammon game) and REQ-NMM-07
+  done (Nine Men's Morris played from the placing phase into the moving phase; Peter resigned at 9 blue vs 6 red after
+  three mills with removals). REQ-NMM-01 and -05 done: the skill guided the whole game, and Claude worked out each of
+  Peter's moves, including a deliberate illegal double move, which it flagged and waited on. Still open: REQ-NMM-03
+  (coin toss) and -06 (reset) were not part of this session; REQ-NMM-04 is shown for placing, moving, mills and
+  removals, but flying has not come up in play.
+- 2026-10-05 — Phase 5 done. REQ-NMM-03 done: Peter confirms the coin toss decided the start of this game (played in
+  an earlier session). REQ-NMM-04 done: flying tested live on a staged position (blue reduced to b6 d5 d6). Blue flew
+  b6-d7 (not adjacent), closing d5-d6-d7 and removing a4, while the helper refused a non-adjacent move for red
+  (6 tokens, cannot fly yet). REQ-NMM-06 done: `reset` returned all 18 tokens to the racks; the helper then read
+  24 empty points and 9 in hand per colour.
