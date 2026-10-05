@@ -140,7 +140,9 @@ def create_server(conn: TTSimConnection) -> MCPServer:
     @server.tool()
     async def roll_dice(guids: list[str], cocked_tilt: float = table.COCKED_TILT_DEGREES) -> Any:
         """Roll dice with TTSim's physics roll (visibly lifted and spun, like pressing R) and wait until all
-        have come to rest. Returns each die's value and tilt (degrees from lying flat), the total, and
+        have come to rest. Coins (and other objects with named faces) are flipped with TTSim's randomize
+        and report their face name, e.g. "Heads"; only numeric dice count towards the total.
+        Returns each die's value and tilt (degrees from lying flat), the total, and
         `cocked`: dice tilted more than `cocked_tilt` (default 10°, for flat surfaces), whose value may be
         disputed. Dice bounce: roll them where nothing else can be hit, e.g. in a dice tray.
         """
@@ -150,8 +152,9 @@ def create_server(conn: TTSimConnection) -> MCPServer:
     async def read_dice(
         guids: list[str] | None = None, cocked_tilt: float = table.COCKED_TILT_DEGREES
     ) -> Any:
-        """Read dice values without rolling (e.g. after the player rolled): the given dice, or all dice
-        on the table. Each die has value, resting, tilt, cocked, tint and position.
+        """Read dice values without rolling (e.g. after the player rolled): the given dice/coins, or all
+        dice and coins on the table. Coins report their face name, e.g. "Heads".
+        Each die has value, resting, tilt, cocked, tint and position.
         """
         return await _call(partial(table.read_dice, conn, guids, cocked_tilt=cocked_tilt))
 

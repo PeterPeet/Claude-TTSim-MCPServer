@@ -1,4 +1,5 @@
--- ttsim_mcp:dice_state  Read-only. Values of the given dice, or of all dice on the table.
+-- ttsim_mcp:dice_state  Read-only. Values of the given dice/coins, or of all dice and coins on the table.
+-- Dice report their number; coins and other faced objects report the face name (e.g. "Heads").
 local args = JSON.decode([==[{{args}}]==])
 local function vec(v) return { v.x, v.y, v.z } end
 local objects = {}
@@ -10,7 +11,7 @@ if args.guids ~= nil then
   end
 else
   for _, o in ipairs(getAllObjects()) do
-    if o.type == "Dice" then table.insert(objects, o) end
+    if o.type == "Dice" or o.type == "Coin" then table.insert(objects, o) end
   end
 end
 -- Tilt: angle between straight up and the die axis closest to it (0 = lying flat).
@@ -25,7 +26,8 @@ local dice = {}
 for _, o in ipairs(objects) do
   table.insert(dice, {
     guid = o.getGUID(),
-    value = o.getValue(),
+    type = o.type,
+    value = o.type == "Dice" and o.getValue() or o.getRotationValue(),
     resting = o.resting,
     tilt = tilt(o),
     tint = o.getColorTint():toHex(false),

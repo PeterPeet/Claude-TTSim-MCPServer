@@ -207,7 +207,8 @@ def _dice_result(dice: list[dict[str, Any]], cocked_tilt: float) -> dict[str, An
     return rounded(
         {
             "dice": dice,
-            "total": sum(d["value"] for d in dice),
+            # Coins report a face name ("Heads"); only numeric dice values count towards the total.
+            "total": sum(d["value"] for d in dice if isinstance(d["value"], int | float)),
             "cocked": [d["guid"] for d in dice if d["cocked"]],
         }
     )
@@ -221,7 +222,8 @@ def roll_dice(
     min_roll_time: float = MIN_ROLL_TIME,
     cocked_tilt: float = COCKED_TILT_DEGREES,
 ) -> dict[str, Any]:
-    """Roll dice with TTSim's physics roll and return their values once all have come to rest."""
+    """Roll dice with TTSim's physics roll (coins and other objects with named faces: TTSim's randomize)
+    and return their values once all have come to rest."""
     if not guids:
         raise ValueError("roll_dice needs at least one die GUID.")
     _run(conn, "roll_dice.lua", {"guids": list(guids)})
@@ -239,6 +241,6 @@ def roll_dice(
 def read_dice(
     conn: TTSimConnection, guids: Sequence[str] | None = None, cocked_tilt: float = COCKED_TILT_DEGREES
 ) -> dict[str, Any]:
-    """Current values of the given dice, or of all dice on the table, without rolling them."""
+    """Current values of the given dice/coins, or of all dice and coins on the table, without rolling them."""
     state = _run(conn, "dice_state.lua", _given(guids=list(guids) if guids else None))
     return _dice_result(state["dice"], cocked_tilt)

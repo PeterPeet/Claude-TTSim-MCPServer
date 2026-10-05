@@ -108,3 +108,16 @@ def test_req_dice_02_read_all_dice(conn: TTSimConnection) -> None:
     result = table.read_dice(conn)
     assert result["dice"]
     assert all({"guid", "value", "resting", "tint"} <= set(d) for d in result["dice"])
+
+
+def test_req_dice_03_flip_a_coin(conn: TTSimConnection) -> None:
+    coin = first(conn, type="Coin")
+    faces = {
+        f["value"]
+        for f in conn.execute_lua(f'return getObjectFromGUID("{coin["guid"]}").getRotationValues()')
+    }
+    result = table.roll_dice(conn, [coin["guid"]])
+    face = result["dice"][0]["value"]
+    assert face in faces
+    assert table.read_dice(conn, [coin["guid"]])["dice"][0]["value"] == face
+    assert any(d["guid"] == coin["guid"] for d in table.read_dice(conn)["dice"])

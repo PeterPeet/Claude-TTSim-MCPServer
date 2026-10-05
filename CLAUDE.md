@@ -80,6 +80,7 @@ so the adapter converts `TTSimError` to `ToolError`.
 2. MCP server with raw access tools (REQ-MCP)
 3. 3D controls (REQ-OBJ, REQ-DICE)
 4. Backgammon skill and a full game against Peter (REQ-BG)
-5. Later: Age of Sigmar skill and any generic tools it needs
+5. Nine Men's Morris skill and coin flips (REQ-NMM, REQ-DICE-03)
+6. Later: Age of Sigmar skill and any generic tools it needs
 
 Finish and test a phase before starting the next one.

@@ -297,3 +297,37 @@ def test_req_dice_02_read_specific_dice(fake_and_conn: Pair) -> None:
     fake.respond("ttsim_mcp:dice_state", dice_state(("d1", 3, True)))
     table.read_dice(conn, ["d1"])
     assert sent_args(fake, "ttsim_mcp:dice_state") == {"guids": ["d1"]}
+
+
+# REQ-DICE-03 Flip coins
+
+
+def test_req_dice_03_roll_accepts_coins_and_reports_the_face(fake_and_conn: Pair) -> None:
+    fake, conn = fake_and_conn
+    coin = {"guid": "c1", "type": "Coin", "value": "Tails", "resting": True, "tilt": 0.0}
+    fake.respond("ttsim_mcp:roll_dice", Value(None))
+    fake.respond(
+        "ttsim_mcp:dice_state", Value({"dice": [{**coin, "resting": False}]}), Value({"dice": [coin]})
+    )
+    result = table.roll_dice(conn, ["c1"], poll_interval=FAST, min_roll_time=0)
+    assert result["dice"][0]["value"] == "Tails"
+    assert result["total"] == 0  # only numeric dice count towards the total
+    assert result["cocked"] == []
+
+
+def test_req_dice_03_total_ignores_coins_next_to_dice(fake_and_conn: Pair) -> None:
+    fake, conn = fake_and_conn
+    fake.respond(
+        "ttsim_mcp:dice_state",
+        Value(
+            {
+                "dice": [
+                    {"guid": "d1", "type": "Dice", "value": 4, "resting": True, "tilt": 0.0},
+                    {"guid": "c1", "type": "Coin", "value": "Heads", "resting": True, "tilt": 0.0},
+                ]
+            }
+        ),
+    )
+    result = table.read_dice(conn)
+    assert result["total"] == 4
+    assert [d["value"] for d in result["dice"]] == [4, "Heads"]

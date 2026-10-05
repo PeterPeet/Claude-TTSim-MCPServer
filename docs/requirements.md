@@ -132,40 +132,41 @@ The skill and MCP server can be installed into Claude Code from this repo with d
 ## Phase 5 — Nine Men's Morris (REQ-NMM, REQ-DICE-03)
 
 Table: the Steam Workshop mod "Nine Men's Morris" (see Q11). Peter plays red (rack on his side), Claude blue.
+Removed tokens are put on the table beside their owner's rack.
 
-**REQ-DICE-03 Flip coins** — `draft`
+**REQ-DICE-03 Flip coins** — `agreed`
 `roll_dice` and `read_dice` also accept coins (any object with named faces): a coin is flipped with TTSim's own
 randomize (which runs the coin's script, if it has one) and its result is reported by face name, e.g. "Heads".
 Generic, in layer 2; no game knowledge.
 - Acceptance: flipping the mod's coin visibly throws it and returns "Heads" or "Tails" matching what TTSim shows.
 
-**REQ-NMM-01 Skill** — `draft`
+**REQ-NMM-01 Skill** — `agreed`
 `skills/ttsim-nine-mens-morris/SKILL.md` explains the table (board, racks, tokens, coin, reset button), the
 standard notation (a1–g7, row 1 on Peter's side, column a on his left), the rules (placing, moving, flying with three,
 mills, removing, winning) and the turn flow with Peter.
 
-**REQ-NMM-02 Read position** — `draft`
+**REQ-NMM-02 Read position** — `agreed`
 Claude can read the position from the table: which of the 24 points hold red or blue tokens, how many tokens each
 player still has in hand (on the rack) and how many were removed.
 - Acceptance: on a freshly reset board Claude reports 24 empty points and 9 tokens in hand per player.
 
-**REQ-NMM-03 Coin toss** — `draft`
+**REQ-NMM-03 Coin toss** — `agreed`
 Who starts is decided by a coin flip: Peter calls heads or tails, Claude flips the coin (REQ-DICE-03) and reads it.
 
-**REQ-NMM-04 Claude's turn** — `draft`
+**REQ-NMM-04 Claude's turn** — `agreed`
 Claude places a token from its rack onto a free point (placing phase), or moves one to an adjacent free point
 (moving phase), or to any free point when it has three left (flying). On closing a mill it removes one of Peter's
 tokens following the rules and puts it beside the board. Every action is stated in notation (e.g. `d6`, `d6-d5`,
 `d6-d5, removes b4`).
 
-**REQ-NMM-05 Peter's turn** — `draft`
+**REQ-NMM-05 Peter's turn** — `agreed`
 Claude waits until Peter says he has moved, reads the position, works out his move (and any removal), and points out
 if it looks illegal (Peter decides).
 
-**REQ-NMM-06 Reset** — `draft`
+**REQ-NMM-06 Reset** — `agreed`
 A new game starts by calling the mod's own reset function (`resetPieces` on the reset button), with Peter's consent.
 
-**REQ-NMM-07 Full game** — `draft`
+**REQ-NMM-07 Full game** — `agreed`
 Claude and Peter play a complete game to a win (opponent reduced to two tokens, or unable to move).
 
 ---
@@ -272,3 +273,7 @@ Claude and Peter play a complete game to a win (opponent reduced to two tokens, 
   `main` updated to this state. Next: a skill for another game.
 - 2026-10-05 — Phase 5 drafted: Nine Men's Morris (REQ-NMM-01..07) and coin flips (REQ-DICE-03), all `draft`.
   Q11 recorded from the spike on the Workshop mod.
+- 2026-10-05 — Phase 5 agreed by Peter: red = Peter, blue = Claude; removed tokens go beside their owner's rack.
+- 2026-10-05 — REQ-DICE-03 implemented: `roll_dice` flips coins with TTSim's randomize (runs the coin's own script),
+  `read_dice` reports face names and includes coins. Spike: the mod's coin rose 4.3–6.0 units and showed both faces in
+  each of 6 flips. Contract tests pass; `pytest -m ttsim` (coin integration test) still to run outside a session.
