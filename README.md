@@ -137,6 +137,10 @@ Some integration tests show messages in the TTSim chat on purpose (a print, and 
 - [ ] Backgammon: a complete game against Claude (in progress)
 - [ ] Warhammer Age of Sigmar (Spearhead), using the mod's own dice area
 
+## License
+
+GNU General Public License v3.0, see [LICENSE](LICENSE).
+
 ## Disclaimer
 
 An independent hobby project, not affiliated with Berserk Games (Tabletop Simulator) or Anthropic.
