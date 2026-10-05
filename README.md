@@ -88,7 +88,7 @@ The Backgammon skill is linked into `.claude/skills/`, so Claude Code finds it a
 
 ## Play
 
-1. Start Tabletop Simulator and load the Backgammon game.
+1. Start Tabletop Simulator and load the built-in Backgammon game.
 2. Open Claude Code in this folder and approve the `ttsim` MCP server when asked.
 3. Say **"let's play backgammon"**.
 
@@ -96,9 +96,9 @@ Claude plays the light checkers and rolls the white dice beside the board. You p
 roll, move, and tell Claude when you are done. Claude reads your dice and move from the table, checks the move,
 and takes its turn.
 
-The skill is written for the Backgammon table it was developed on (one board with 120 snap points, light and brown
-checkers, white and blue dice). Another backgammon table may need small changes in
-[skills/ttsim-backgammon](skills/ttsim-backgammon).
+The skill is written for the built-in Backgammon table that comes with Tabletop Simulator (one board with
+120 snap points, light and brown checkers, white and blue dice). A Workshop backgammon mod may need small changes
+in [skills/ttsim-backgammon](skills/ttsim-backgammon).
 
 ## Project layout
 
