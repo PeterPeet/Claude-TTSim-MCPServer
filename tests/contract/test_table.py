@@ -204,12 +204,18 @@ def test_req_obj_07_highlight(fake_and_conn: Pair) -> None:
 # REQ-DICE-01 Roll physical dice
 
 
-def dice_state(*dice: tuple[str, int, bool], rotation: list[float] | None = None) -> Value:
-    rot = rotation or [0, 45, 0]
+def dice_state(*dice: tuple[str, int, bool], tilt: float = 0.0) -> Value:
     return Value(
         {
             "dice": [
-                {"guid": g, "value": v, "resting": r, "rotation": rot, "position": [0, 1, 0]}
+                {
+                    "guid": g,
+                    "value": v,
+                    "resting": r,
+                    "tilt": tilt,
+                    "rotation": [0, 45, 0],
+                    "position": [0, 1, 0],
+                }
                 for g, v, r in dice
             ]
         }
@@ -245,10 +251,19 @@ def test_req_dice_01_roll_waits_at_least_min_roll_time(fake_and_conn: Pair) -> N
 def test_req_dice_01_roll_reports_cocked_dice(fake_and_conn: Pair) -> None:
     fake, conn = fake_and_conn
     fake.respond("tts_mcp:roll_dice", Value(None))
-    fake.respond("tts_mcp:dice_state", dice_state(("d1", 3, True), rotation=[30, 0, 0]))
+    fake.respond("tts_mcp:dice_state", dice_state(("d1", 3, True), tilt=35.0))
     result = table.roll_dice(conn, ["d1"], poll_interval=FAST, min_roll_time=0)
     assert result["cocked"] == ["d1"]
     assert result["dice"][0]["cocked"] is True
+    assert result["dice"][0]["tilt"] == 35.0
+
+
+def test_req_dice_01_cocked_tolerance_is_adjustable(fake_and_conn: Pair) -> None:
+    # 20° is cocked on a flat table (default 10°), but acceptable on a curved surface with tolerance 30°.
+    fake, conn = fake_and_conn
+    fake.respond("tts_mcp:dice_state", dice_state(("d1", 3, True), tilt=20.0))
+    assert table.read_dice(conn)["cocked"] == ["d1"]
+    assert table.read_dice(conn, cocked_tilt=30)["cocked"] == []
 
 
 def test_req_dice_01_roll_never_resting_times_out(fake_and_conn: Pair) -> None:

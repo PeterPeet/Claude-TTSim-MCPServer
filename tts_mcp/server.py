@@ -138,19 +138,22 @@ def create_server(conn: TTSConnection) -> MCPServer:
         return await _call(table.highlight, conn, guid, color, seconds)
 
     @server.tool()
-    async def roll_dice(guids: list[str]) -> Any:
+    async def roll_dice(guids: list[str], cocked_tilt: float = table.COCKED_TILT_DEGREES) -> Any:
         """Roll dice with TTS's physics roll (visibly lifted and spun, like pressing R) and wait until all
-        have come to rest. Returns each die's value, the total, and `cocked`: dice that landed tilted,
-        whose value may be disputed.
+        have come to rest. Returns each die's value and tilt (degrees from lying flat), the total, and
+        `cocked`: dice tilted more than `cocked_tilt` (default 10°, for flat surfaces), whose value may be
+        disputed. Dice bounce: roll them where nothing else can be hit, e.g. in a dice tray.
         """
-        return await _call(table.roll_dice, conn, guids)
+        return await _call(partial(table.roll_dice, conn, guids, cocked_tilt=cocked_tilt))
 
     @server.tool()
-    async def read_dice(guids: list[str] | None = None) -> Any:
+    async def read_dice(
+        guids: list[str] | None = None, cocked_tilt: float = table.COCKED_TILT_DEGREES
+    ) -> Any:
         """Read dice values without rolling (e.g. after the player rolled): the given dice, or all dice
-        on the table. Each die has value, resting, cocked, tint and position.
+        on the table. Each die has value, resting, tilt, cocked, tint and position.
         """
-        return await _call(table.read_dice, conn, guids)
+        return await _call(partial(table.read_dice, conn, guids, cocked_tilt=cocked_tilt))
 
     return server
 

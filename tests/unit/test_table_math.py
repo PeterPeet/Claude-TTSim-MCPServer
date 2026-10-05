@@ -34,18 +34,16 @@ def test_req_obj_06_edge_distance_point_to_box() -> None:
 
 
 @pytest.mark.parametrize(
-    ("rotation", "cocked"),
+    ("tilt", "tolerance", "cocked"),
     [
-        ((0.0, 123.0, 0.0), False),
-        ((-6.8e-6, 285.37, 270.0), False),  # real resting die from the spike
-        ((90.0, 10.0, 180.0), False),
-        ((359.0, 0.0, 91.5), False),
-        ((30.0, 0.0, 0.0), True),
-        ((0.0, 0.0, 225.0), True),
+        (0.0, 30.0, False),  # flat on the table
+        (13.4, 30.0, False),  # resting in a bowl (spike)
+        (30.6, 30.0, True),  # leaning steeply in a bowl (spike)
+        (12.0, 10.0, True),  # stricter tolerance for a flat table
     ],
 )
-def test_req_dice_01_is_cocked(rotation: tuple[float, float, float], cocked: bool) -> None:
-    assert is_cocked(rotation) is cocked
+def test_req_dice_01_is_cocked(tilt: float, tolerance: float, cocked: bool) -> None:
+    assert is_cocked(tilt, tolerance) is cocked
 
 
 def test_req_obj_01_rounded_trims_float_noise() -> None:

@@ -169,6 +169,10 @@ The skill and MCP server can be installed into Claude Code from this repo with d
   flight; only 1 of 400 showed a single face. 1 of 400 landed cocked, none timed out. The dice land near where
   they started, which is why it looks like a roll in place, but they drift: after 100 rolls they were up to
   5 units from their start. Skills should put dice back in their home area before rolling.
+  **Rolling off the board, 2026-10-05:** dice roll fine on the free table beside the board (drift ~0.3 units), and a
+  bowl contains them, but its curved bottom leaves them tilted 10–30°. A flat dice tray would contain them without
+  tilt; Peter will provide one later. The Age of Sigmar mod has its own dice area with roll and sort buttons
+  (to be explained by Peter).
 - **Q9** Tool output shape. — **Found 2026-10-05:** a tool that returns a bare list is shown to Claude as one
   block per item. Tools return objects (e.g. `{"objects": [...]}`) instead.
 - **Q5** Which colour does Claude play, and who rolls Claude's dice (Claude via tool, or Peter)?
@@ -196,6 +200,9 @@ The skill and MCP server can be installed into Claude Code from this repo with d
   velocity and spin) instead of using TTS's `roll()`. Adds the target area and the cocked-die flag.
 - 2026-10-05 — REQ-DICE-01 changed back at Peter's request: the scripted throw was not visible enough, so dice
   use TTS's `roll()` again. Target area dropped; cocked-die flag kept.
+- 2026-10-05 — Cocked-die detection fixed (no requirement change): it now uses the true tilt from lying flat,
+  computed in Lua from the die's axes. The old check read Euler angles and could misjudge flat dice. Tilt is
+  reported per die; the threshold is adjustable (default 10°).
 - 2026-10-05 — Phase 3 implemented (REQ-OBJ-01..07, REQ-DICE-01..02): unit and contract tests pass; every Lua
   template was run against the real game via `run_lua`. Status stays `agreed` until `pytest -m tts` has run
   (needs port 39998 free, i.e. outside a session with the `tts` server) and Peter has confirmed the roll is visible.

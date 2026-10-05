@@ -19,7 +19,8 @@ MOVE_TIMEOUT = 10.0
 ROLL_TIMEOUT = 15.0
 # A die is read only after this long, so a roll is never read before it has left the table.
 MIN_ROLL_TIME = 0.5
-COCKED_TOLERANCE_DEGREES = 10.0
+# A die tilted more than this from lying flat counts as cocked (45° = two faces equally up).
+COCKED_TILT_DEGREES = 10.0
 
 Point = Sequence[float]
 Vec3 = tuple[float, float, float]
@@ -58,14 +59,9 @@ def edge_distance(a: Box, b: Box) -> float:
     return math.hypot(*gaps)
 
 
-def is_cocked(rotation: Point, tolerance: float = COCKED_TOLERANCE_DEGREES) -> bool:
-    """A cube lies flat when its x and z rotations are multiples of 90°; y (spin on the table) is free."""
-
-    def off_axis(angle: float) -> float:
-        rest = angle % 90.0
-        return min(rest, 90.0 - rest)
-
-    return off_axis(rotation[0]) > tolerance or off_axis(rotation[2]) > tolerance
+def is_cocked(tilt: float, tolerance: float = COCKED_TILT_DEGREES) -> bool:
+    """Whether a die's tilt (degrees between its top face and straight up, computed in Lua) is too large."""
+    return tilt > tolerance
 
 
 def _run(conn: TTSConnection, template: str, args: dict[str, Any] | None = None) -> Any:
@@ -203,9 +199,9 @@ def highlight(conn: TTSConnection, guid: str, color: str = "Yellow", seconds: fl
     return {"guid": guid, "color": color, "seconds": seconds}
 
 
-def _dice_result(dice: list[dict[str, Any]]) -> dict[str, Any]:
+def _dice_result(dice: list[dict[str, Any]], cocked_tilt: float) -> dict[str, Any]:
     for d in dice:
-        d["cocked"] = is_cocked(d["rotation"])
+        d["cocked"] = is_cocked(d["tilt"], cocked_tilt)
     return rounded(
         {
             "dice": dice,
@@ -221,6 +217,7 @@ def roll_dice(
     timeout: float = ROLL_TIMEOUT,
     poll_interval: float = POLL_INTERVAL,
     min_roll_time: float = MIN_ROLL_TIME,
+    cocked_tilt: float = COCKED_TILT_DEGREES,
 ) -> dict[str, Any]:
     """Roll dice with TTS's physics roll and return their values once all have come to rest."""
     if not guids:
@@ -234,10 +231,12 @@ def roll_dice(
         poll_interval=poll_interval,
         min_time=min_roll_time,
     )
-    return _dice_result(state["dice"])
+    return _dice_result(state["dice"], cocked_tilt)
 
 
-def read_dice(conn: TTSConnection, guids: Sequence[str] | None = None) -> dict[str, Any]:
+def read_dice(
+    conn: TTSConnection, guids: Sequence[str] | None = None, cocked_tilt: float = COCKED_TILT_DEGREES
+) -> dict[str, Any]:
     """Current values of the given dice, or of all dice on the table, without rolling them."""
     state = _run(conn, "dice_state.lua", _given(guids=list(guids) if guids else None))
-    return _dice_result(state["dice"])
+    return _dice_result(state["dice"], cocked_tilt)
